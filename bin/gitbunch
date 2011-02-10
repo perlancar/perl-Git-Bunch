@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+
+# workaround for dzil
+package gitbunch;
+
+use 5.010;
+use strict;
+use warnings;
+use Log::Any::App;
+
+use Sub::Spec::CmdLine qw(run);
+use Git::Bunch;
+
+run(
+    module => 'Git::Bunch',
+    subcommands => {
+        backup => {},
+        status => {},
+        sync   => {},
+    });
+
+__END__
+
+=head1 NAME
+
+gitbunch - Manage gitbunch directory (directory which contain git repos)
+
+=head1 DESCRIPTION
+
+See L<Git::Bunch> for more documentation.
+
+=cut
