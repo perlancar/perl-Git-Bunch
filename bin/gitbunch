@@ -6,7 +6,7 @@ package gitbunch;
 use 5.010;
 use strict;
 use warnings;
-BEGIN { no warnings; $::LOG_LEVEL = 'info' }
+#BEGIN { no warnings; $::LOG_LEVEL = 'info' }
 use Log::Any::App;
 
 use Sub::Spec::CmdLine qw(run);
@@ -15,9 +15,9 @@ use Git::Bunch;
 run(
     module => 'Git::Bunch',
     subcommands => {
-        backup => {},
-        status => {},
-        sync   => {},
+        check  => { sub => 'check_bunch'  },
+        sync   => { sub => 'sync_bunch'   },
+        backup => { sub => 'backup_bunch' },
     });
 
 __END__
