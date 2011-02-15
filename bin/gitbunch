@@ -6,6 +6,7 @@ package gitbunch;
 use 5.010;
 use strict;
 use warnings;
+BEGIN { no warnings; $::LOG_LEVEL = 'info' }
 use Log::Any::App;
 
 use Sub::Spec::CmdLine qw(run);
@@ -28,5 +29,24 @@ gitbunch - Manage gitbunch directory (directory which contain git repos)
 =head1 DESCRIPTION
 
 See L<Git::Bunch> for more documentation.
+
+=head1 FAQ
+
+=head2 How to see more verbose/debugging output?
+
+B<gitbunch> uses L<Log::Any::App>. You can customize logging levels using a
+variety of ways, e.g. environment variable:
+
+ % TRACE=1 gitbunch ...
+
+By default it also writes log to ~/gitbunch.log. You can disable this using:
+
+ % FILE_LOG_LEVEL=off gitbunch ...
+
+Or you can customize the level using:
+
+ % FILE_QUIET=1 gitbunch ...
+
+See the documentation for Log::Any::App for more details.
 
 =cut
