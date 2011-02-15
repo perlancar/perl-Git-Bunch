@@ -41,11 +41,13 @@ sub check_bunch {
     $source =~ s!/+$!!;
     (-d $source) or return [404, "Source doesn't exist"];
 
+    $log->info("Checking bunch $source ...");
+
     my %res;
     local $CWD = $source;
     for my $repo (grep {-d} <*>) {
-        $log->debug("Checking repo `$repo` ...");
         $CWD = $repo;
+        $log->debug("Checking repo $repo ...");
 
         unless (-d ".git") {
             $log->warn("$repo is not a git repo, ".
@@ -109,8 +111,22 @@ _
             summary      => 'Backup destination',
             arg_pos      => 1,
         }],
-        check            => ['str'   => {
-            summary      => 'Run check_bunch first before doing backup',
+        check            => ['bool'   => {
+            summary      =>
+                'Whether to check bunch first before doing backup',
+            default      => 1,
+        }],
+        backup           => ['bool'   => {
+            summary      => 'Whether to do actual backup/rsync',
+            description  => <<'_',
+
+You can set backup=0 and index=1 to only run indexing, for example.
+
+_
+            default      => 1,
+        }],
+        index            => ['bool'   => {
+            summary      => 'Whether to do "ls -laR" after backup',
             default      => 1,
         }],
         extra_rsync_opts => [array    => {
@@ -147,16 +163,54 @@ sub backup_bunch {
     (-d $source) or return [404, "Source doesn't exist"];
     my $target    = $args{target} or return [400, "Please specify target"];
     $target       =~ s!/+$!!;
-    my $check     = $args{check} // 1;
+    my $check     = $args{check}  // 1;
+    my $backup    = $args{backup} // 1;
+    my $index     = $args{index}  // 1;
+
+    my $res;
+    if ($check) {
+        $res = check_bunch(source => $source);
+        return $res unless $res->[0];
+        return [500, "Some repos are not clean, please fix first"]
+            if keys %{$res->[2]};
+    }
 
     unless (-d $target) {
         $log->debugf("Creating target directory %s ...", $target);
         make_path($target)
-            or die "Can't create target directory $target: $!\n";
+            or return [500, "Can't create target directory $target: $!"];
     }
 
-}
+    if ($backup) {
+        $log->info("Backing up bunch $source ===> $target ...");
+        my $cmd = join(
+            "",
+            "rsync -az ",
+            ($log->is_trace() ? "-Pv" : ($log->is_debug() ? "-v" : "")), " ",
+            "--include / ",
+            "--include '/*' --include '/*/.git' --include '/*/.git/**' ",
+            #"--include '/.remote' --include '/.remote/**' ",
+            "--exclude '*' ",
+            "--del --force --delete-excluded ",
+            shell_quote($source), "/ ",
+            shell_quote($target), "/"
+        );
+        $log->trace("system(): $cmd");
+        system $cmd;
+        return [500, "Backup did not succeed, please check: $!"] if $?;
+    }
 
+    if ($index) {
+        $log->info("Indexing bunch $source ...");
+        local $CWD = $source;
+        my $cmd = "( ls -laR | gzip -c > .ls-laR.gz ) && ".
+            "cp .ls-laR.gz ".shell_quote($target);
+        $log->trace("system(): $cmd");
+        return [500, "Indexing did not succeed, please check: $!"] if $?;
+    }
+
+    [200, "OK"];
+}
 
 1;
 __END__
