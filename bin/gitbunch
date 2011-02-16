@@ -11,6 +11,8 @@ BEGIN {
     unless ($ENV{COMP_LINE}) {
         no warnings; $::LOG_LEVEL = 'info';
         require Log::Any::App;
+        # older Log::Any::App (< 0.26) which croaks when import() is not called
+        Log::Any::App->import();
     }
 }
 
