@@ -6,19 +6,23 @@ package gitbunch;
 use 5.010;
 use strict;
 use warnings;
-#BEGIN { no warnings; $::LOG_LEVEL = 'info' }
-use Log::Any::App;
+BEGIN {
+    # reduce startup overhead if being invoked for bash completion
+    unless ($ENV{COMP_LINE}) {
+        no warnings; $::LOG_LEVEL = 'info';
+        require Log::Any::App;
+    }
+}
 
 use Sub::Spec::CmdLine qw(run);
-use Git::Bunch;
-
 run(
     module => 'Git::Bunch',
     subcommands => {
         check  => { sub => 'check_bunch'  },
         sync   => { sub => 'sync_bunch'   },
         backup => { sub => 'backup_bunch' },
-    });
+    }
+);
 
 __END__
 
