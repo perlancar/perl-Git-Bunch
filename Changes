@@ -1,5 +1,10 @@
 Revision history for Git-Bunch
 
+0.03    2011-02-16
+
+        Add missing dependency (File::chdir). [CT]
+
+
 0.02    2011-02-15
 
         Change log levels.
