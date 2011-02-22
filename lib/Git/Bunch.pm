@@ -15,9 +15,9 @@ require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT_OK = qw(check_bunch sync_bunch backup_bunch);
 
-our %SUBS;
+our %SPEC;
 
-$SUBS{check_bunch} = {
+$SPEC{check_bunch} = {
     summary       =>
         'Check status of git repositories inside gitbunch directory',
     description   => <<'_',
@@ -220,7 +220,7 @@ sub _sync_repo {
     [200, "OK"];
 }
 
-$SUBS{sync_bunch} = {
+$SPEC{sync_bunch} = {
     summary       =>
         'Synchronize bunch to another bunch',
     description   => <<'_',
@@ -328,7 +328,7 @@ sub sync_bunch {
     [200, "OK", {failed_syncs=>\%res}];
 }
 
-$SUBS{backup_bunch} = {
+$SPEC{backup_bunch} = {
     summary       =>
         'Backup bunch directory to another directory using rsync',
     description   => <<'_',
