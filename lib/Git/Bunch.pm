@@ -17,6 +17,20 @@ our @EXPORT_OK = qw(check_bunch sync_bunch backup_bunch);
 
 our %SPEC;
 
+sub _check_bunch_sanity {
+    my ($path_ref, $title, $must_exist) = @_;
+    $title //= "Directory";
+    $$path_ref =~ s!/+$!!;
+    if ($must_exist // 1) {
+        (-d $$path_ref) or return [404, "$title doesn't exist"];
+        (-d $$path_ref . "/.git") and
+            return [400, "$title is probably a git repo, ".
+                        "you should specify a dir *containing* ".
+                            "git repos instead"];
+    }
+    [200, "OK"];
+}
+
 $SPEC{check_bunch} = {
     summary       =>
         'Check status of git repositories inside gitbunch directory',
@@ -39,8 +53,8 @@ _
 sub check_bunch {
     my %args = @_;
     my $source = $args{source} or return [400, "Please specify source"];
-    $source =~ s!/+$!!;
-    (-d $source) or return [404, "Source doesn't exist"];
+    my $res = _check_bunch_sanity(\$source, 'Source');
+    return $res unless $res->[0] == 200;
 
     $log->info("Checking bunch $source ...");
 
@@ -259,13 +273,17 @@ _
 sub sync_bunch {
     my %args = @_;
 
+    my $res;
+
     # XXX schema
     my $source        = $args{source} or return [400, "Please specify source"];
     $source           =~ s!/+$!!;
-    (-d $source) or return [404, "Source doesn't exist"];
+    $res = _check_bunch_sanity(\$source, 'Source');
+    return $res unless $res->[0] == 200;
     $source           = Cwd::abs_path($source);
     my $target        = $args{target} or return [400, "Please specify target"];
-    $target           =~ s!/+$!!;
+    $res = _check_bunch_sanity(\$target, 'Target', 0);
+    return $res unless $res->[0] == 200;
     $target           = Cwd::abs_path($target);
     my $wanted_repos  = $args{repos};
     return [400, "repos must be an array"]
@@ -406,17 +424,19 @@ _
 sub backup_bunch {
     my %args = @_;
 
+    my $res;
+
     # XXX schema
     my $source    = $args{source} or return [400, "Please specify source"];
-    $source =~ s!/+$!!;
-    (-d $source) or return [404, "Source doesn't exist"];
+    $res = _check_bunch_sanity(\$source, 'Source');
+    return $res unless $res->[0] == 200;
     my $target    = $args{target} or return [400, "Please specify target"];
-    $target       =~ s!/+$!!;
+    $res = _check_bunch_sanity(\$target, 'Target');
+    return $res unless $res->[0] == 200;
     my $check     = $args{check}  // 1;
     my $backup    = $args{backup} // 1;
     my $index     = $args{index}  // 1;
 
-    my $res;
     if ($check) {
         $res = check_bunch(source => $source);
         return $res unless $res->[0];
