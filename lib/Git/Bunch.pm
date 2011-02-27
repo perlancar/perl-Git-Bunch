@@ -49,6 +49,11 @@ _
         }],
     },
     cmdline_suppress_output => 1,
+    deps => {
+        all => [
+            {exec => 'git'},
+        ],
+    },
 };
 sub check_bunch {
     my %args = @_;
@@ -269,6 +274,12 @@ _
         }],
     },
     cmdline_suppress_output => 1,
+    deps => {
+        all => [
+            {exec => 'git'},
+            {exec => 'rsync'},
+        ],
+    },
 };
 sub sync_bunch {
     my %args = @_;
@@ -420,6 +431,14 @@ directories will be backed up in its entirety. Do not run check_bunch() first.
 _
         },
     ],
+    deps => {
+        all => [
+            {exec => 'ls'},
+            {exec => 'gzip'},
+            {exec => 'rsync'},
+            {exec => 'cp'},
+        ],
+    },
 };
 sub backup_bunch {
     my %args = @_;
