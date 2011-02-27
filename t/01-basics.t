@@ -10,10 +10,12 @@ use File::Temp qw(tempdir);
 use File::Which;
 use Git::Bunch qw(check_bunch sync_bunch backup_bunch);
 use Probe::Perl;
+use String::ShellQuote;
 
 for (qw(git rsync)) {
     plan skip_all => "$_ not available in PATH" unless which($_);
 }
+# due to shell quoting etc
 my $pp = Probe::Perl->new;
 plan skip_all => 'currently only test on Unix'
     unless $pp->os_type eq 'Unix';
