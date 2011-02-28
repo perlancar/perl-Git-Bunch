@@ -107,7 +107,7 @@ sub check_bunch {
 }
 
 sub _mysystem {
-    $log->trace("system(): ".join(" ", @_));
+    $log->tracef("system(): cwd=%s, cmd=%s", $CWD, join(" ", @_));
     system @_;
 }
 
