@@ -37,8 +37,9 @@ $SPEC{check_bunch} = {
     description   => <<'_',
 
 Will perform a 'git status' for each git repositories inside the bunch and
-report which repositories are 'unclean' (e.g. needs commit, has untracked files,
-etc).
+report which repositories are clean/unclean.
+
+Will die if can't chdir into bunch or git repository.
 
 _
     required_args => [qw/source/],
@@ -63,23 +64,31 @@ sub check_bunch {
 
     $log->info("Checking bunch $source ...");
 
+    my $has_unclean;
     my %res;
     local $CWD = $source;
+    my $i = 0;
     for my $repo (grep {-d} <*>) {
-        $CWD = $repo;
+        $CWD = $i++ ? "../$repo" : $repo;
         $log->debug("Checking repo $repo ...");
 
         unless (-d ".git") {
             $log->warn("$repo is not a git repo, ".
                            "please remove it or rename to .$repo");
             $res{$repo} = [400, "Not a git repository"];
+            next;
         };
 
         my $output = `LANG=C git status 2>&1`;
         my $exit = $? & 255;
         if ($exit == 0 && $output =~ /nothing to commit/) {
             $log->info("$repo is clean");
-        } elsif ($exit == 0 &&
+            $res{$repo} = [200, "Clean"];
+            next;
+        }
+
+        $has_unclean++;
+        if ($exit == 0 &&
                      $output =~ /Changes to be committed|Changed but/) {
             $log->warn("$repo needs commit");
             $res{$repo} = [500, "Needs commit"];
@@ -94,9 +103,8 @@ sub check_bunch {
                             "for repo $repo: exit=$exit, output=$output");
             $res{$repo} = [500, "Unknown (exit=$exit, output=$output)"];
         }
-        $CWD = "..";
     }
-    [200, "OK", \%res];
+    [200, $has_unclean ? "Some repos unclean" : "All repos clean", \%res];
 }
 
 sub _mysystem {
