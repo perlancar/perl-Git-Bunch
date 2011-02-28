@@ -70,7 +70,7 @@ test_gb(
 );
 rmdir "src/bunch1/nonrepo2";
 
-write_file("src/bunch1/repo1/a", "");
+write_file("src/bunch1/repo1/d/b", "");
 test_gb(
     sub     => "check_bunch",
     name    => "needs commit",
@@ -150,13 +150,12 @@ SKIP: {
 
   TODO: {
         local $TODO = "todo";
-        fail("refuse to backup when there are unclean repos");
-        fail("force backup unclean repos with --nocheck");
+        fail("arg: nocheck");
     }
 
     test_gb(
         sub     => "backup_bunch",
-        name    => "main test", # also tests handling / suffix in src & target
+        name    => "main tests", # also tests handling / suffix in src & target
         args    => {source=>"src/bunch1/", target=>"bak/1/"},
         status  => 200,
         test_res => sub {
@@ -169,11 +168,13 @@ SKIP: {
             for my $repo (qw(repo1 repo2)) {
                 ok( (-d "bak/1/$repo"), "repo $repo copied (exists)");
                 ok( (-d "bak/1/$repo/.git"), "repo $repo copied (.git exists)");
-                ok(!(-e "bak/1/$repo/file1"),
+                ok(!(-e "bak/1/$repo/a"),
                    "repo $repo copied (working copy not copied)");
                 like(`cd bak/1/$repo && git log`, qr/commit1-$repo/i,
                      "repo $repo copied (git log works)");
             }
+            ok((-f "src/bunch1/.ls-laR.gz"), "index created");
+            ok((-f "bak/1/.ls-laR.gz"), "index copied");
         },
     );
   TODO: {
@@ -181,33 +182,129 @@ SKIP: {
         fail("update backup");
     }
 }
-goto DONE_TESTING;
+delete_test_data("bak") if Test::More->builder->is_passing;
 
 test_gb(
     sub     => "sync_bunch",
-    name    => "handling / suffix in source bunch name",
-    args    => {source=>"t/data/bunch1/", target=>"XXX"},
-    status  => 200,
-);
-test_gb(
-    sub     => "sync_bunch",
     name    => "source bunch doesn't exist",
-    args    => {source=>"t/data/bunch1x", target=>"XXX"},
+    args    => {source=>"src/bunch1x", target=>"sync"},
     status  => 404,
 );
 test_gb(
     sub     => "sync_bunch",
     name    => "using repo instead of bunch in source will be rejected",
-    args    => {source=>"t/data/bunch1/repo1", target=>"XXX"},
+    args    => {source=>"src/bunch1/repo1", target=>"sync"},
     status  => 400,
 );
 test_gb(
     sub     => "sync_bunch",
     name    => "using repo instead of bunch in target will be rejected",
-    args    => {source=>"t/data/bunch1", target=>"XXX"},
+    args    => {source=>"src/bunch1", target=>"src/bunch1/repo1"},
     status  => 400,
 );
-# XXX update
+test_gb(
+    sub     => "sync_bunch",
+    name    => "main test", # also test handling / suffix in src & target
+    args    => {source=>"src/bunch1/", target=>"sync/1/"},
+    status  => 200,
+    test_res => sub {
+        my ($res) = @_;
+        ok((-d "sync/1"), "target directory created") or return;
+        is(slurp_cq("sync/1/file1"), "foo", "files copied");
+        ok((-d "sync/1/.nonrepo1"), "nongit dotdir copied (exists)");
+        is(slurp_cq("sync/1/.nonrepo1/t"), "tea",
+           "nongit dotdir copied (content)");
+        for my $repo (qw(repo1 repo2)) {
+            ok( (-d "sync/1/$repo"), "repo $repo copied (exists)");
+            ok( (-d "sync/1/$repo/.git"),
+                "repo $repo copied (.git exists)");
+            is( slurp_cq("sync/1/$repo/a"), "apple",
+                "repo $repo copied (working copy copied)");
+            like(`cd sync/1/$repo && git log`, qr/commit1-$repo/i,
+                 "repo $repo copied (git log works)");
+        }
+    },
+);
+
+# different length or rsync by default ignores it
+write_file "src/bunch1/file1", "foobar";
+write_file "src/bunch1/.nonrepo1/t", "tangerine";
+# delete
+unlink     "src/bunch1/repo1/a";
+system  "cd src/bunch1/repo1 && git commit -am 'commit3-repo1'";
+# add
+write_file "src/bunch1/repo1/e", "eggplant";
+system  "cd src/bunch1/repo1 && git add e && git commit -am 'commit4-repo1'";
+# update
+write_file "src/bunch1/repo1/d/b", "blackberry";
+system  "cd src/bunch1/repo1 && git commit -am 'commit5-repo1'";
+# rename
+system  "cd src/bunch1/repo1 && git mv k d/ && git commit -am 'commit6-repo1'";
+
+test_gb(
+    sub     => "sync_bunch",
+    name    => "update",
+    args    => {source=>"src/bunch1/", target=>"sync/1/"},
+    status  => 200,
+    test_res => sub {
+        my ($res) = @_;
+        is(slurp_cq("sync/1/file1"), "foobar", "files updated");
+        is(slurp_cq("sync/1/.nonrepo1/t"), "tangerine",
+           "nongit dotdir updated");
+        ok(!(-e "sync/1/repo1/a"), "repo1: a deleted");
+        is(slurp_cq("sync/1/repo1/e"), "eggplant", "repo1: e added");
+        is(slurp_cq("sync/1/repo1/d/b"), "blackberry", "repo1: b updated");
+        ok(!(-e "sync/1/repo1/k"), "repo1: k moved (1)");
+        is(slurp_cq("sync/1/repo1/d/k"), "kangkung", "repo1: k moved (2)");
+        like(`cd sync/1/repo1 && git log`,
+             qr/commit6.+commit5.+commit4.+commit3/s,
+             "repo1: commits sync-ed");
+        my %status = (
+            ".ls-laR.gz" => 200,
+            "file1"      => 200,
+            ".nonrepo1"  => 200,
+            "repo1"      => 200,
+            "repo2"      => 304,
+        );
+        is($res->[2]{$_}[0], $status{$_}, "status of $_") for keys %status;
+    },
+);
+
+write_file "src/bunch1/repo2/s1", "strawberry";
+system  "cd src/bunch1/repo2 && git branch b2";
+system  "cd src/bunch1/repo2 && git add s1 && ".
+    "git commit -am 'commit3-master-repo2'";
+system  "cd src/bunch1/repo2 && git co b2";
+write_file "src/bunch1/repo2/s2", "spearmint";
+system  "cd src/bunch1/repo2 && git add s2 && ".
+    "git commit -am 'commit4-b2-repo2'";
+
+test_gb(
+    sub     => "sync_bunch",
+    name    => "multiple branches",
+    args    => {source=>"src/bunch1/", target=>"sync/1/"},
+    status  => 200,
+    test_res => sub {
+        my ($res) = @_;
+        system "cd sync/1/repo2 && git co master";
+        is(slurp_cq("sync/1/repo2/s1"),
+           "strawberry", "branch master: s1 added");
+        ok(!(-e "sync/1/repo2/s2"), "branch master: s2 not added");
+
+        system "cd sync/1/repo2 && git co b2";
+        is(slurp_cq("sync/1/repo2/s2"),
+           "spearmint", "branch b2: s2 added");
+        ok(!(-e "sync/1/repo2/s1"), "branch b2: s2 not added");
+    },
+);
+
+TODO: {
+    local $TODO = "todo";
+    fail("arg: delete_branch");
+    fail("arg: repos (skips nonrepo as well as repo)");
+}
+
+delete_test_data("sync") if Test::More->builder->is_passing;
 
 DONE_TESTING:
 done_testing();
@@ -239,7 +336,8 @@ sub test_gb {
             ok($eval_err, "dies");
         }
         if ($args{status}) {
-            is($res->[0], $args{status}, "status $args{status}");
+            is($res->[0], $args{status}, "status $args{status}")
+                or diag explain($res);
         }
         if ($args{test_res}) {
             $args{test_res}->($res);
@@ -263,6 +361,7 @@ sub create_test_data {
     write_file "src/bunch1/repo1/a", "apple";
     mkdir      "src/bunch1/repo1/d";
     write_file "src/bunch1/repo1/d/b", "banana";
+    write_file "src/bunch1/repo1/k", "kangkung";
     $CWD     = "src/bunch1/repo1";
     system     "git init";
     system     "git add .";
@@ -277,17 +376,13 @@ sub create_test_data {
     system     "git init";
     system     "git add .";
     system     "git commit -am 'commit1-repo2'";
-    write_file   "a", "anggur";
+    write_file   "a", "apple";
     system     "git commit -am 'commit2-repo2'";
     $CWD     = "../../..";
-
-    mkdir      "dest";
-
-    #mkdir      "bak";
 }
 
 sub delete_test_data {
     die unless $rootdir;
-    my @dirs = @_ ? @_ : ("src", "dest", "bak");
+    my @dirs = @_ ? @_ : ("src", "sync", "bak");
     system "rm -rf ".join(" ", map {shell_quote("$rootdir/$_")} @dirs);
 }
