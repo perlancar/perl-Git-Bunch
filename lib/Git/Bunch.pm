@@ -332,7 +332,7 @@ sub sync_bunch {
             $cmd = "rsync -az --del --force ".shell_quote("$source/$e")." .";
             _mysystem($cmd);
             if ($?) {
-                $log->warn("Rsync failed, please check: $!");
+                $log->warn("Rsync failed, please check: $?");
             }
             next ENTRY;
         }
@@ -348,7 +348,7 @@ sub sync_bunch {
             $cmd = "rsync -az ".shell_quote("$source/$e")." .";
             _mysystem($cmd);
             if ($?) {
-                $log->warn("Rsync failed, please check: $!");
+                $log->warn("Rsync failed, please check: $?");
             }
             $log->warn("Repo $e copied");
             next ENTRY;
@@ -444,7 +444,6 @@ _
             {exec => 'ls'},
             {exec => 'gzip'},
             {exec => 'rsync'},
-            {exec => 'cp'},
         ],
     },
 };
@@ -458,7 +457,7 @@ sub backup_bunch {
     $res = _check_bunch_sanity(\$source, 'Source');
     return $res unless $res->[0] == 200;
     my $target    = $args{target} or return [400, "Please specify target"];
-    $res = _check_bunch_sanity(\$target, 'Target');
+    $res = _check_bunch_sanity(\$target, 'Target', 0);
     return $res unless $res->[0] == 200;
     my $check     = $args{check}  // 1;
     my $backup    = $args{backup} // 1;
@@ -468,7 +467,7 @@ sub backup_bunch {
         $res = check_bunch(source => $source);
         return $res unless $res->[0];
         return [500, "Some repos are not clean, please fix first"]
-            if keys %{$res->[2]};
+            if grep { $res->[2]{$_}[0] != 200 } keys %{$res->[2]};
     }
 
     unless (-d $target) {
@@ -494,16 +493,21 @@ sub backup_bunch {
             shell_quote($target), "/"
         );
         _mysystem($cmd);
-        return [500, "Backup did not succeed, please check: $!"] if $?;
+        return [500, "Backup did not succeed, please check: $?"] if $?;
     }
 
     if ($index) {
         $log->info("Indexing bunch $source ...");
-        local $CWD = $source;
-        my $cmd = "( ls -laR | gzip -c > .ls-laR.gz ) && ".
-            "cp .ls-laR.gz ".shell_quote($target);
+        {
+            local $CWD = $source;
+            my $cmd = "ls -laR | gzip -c > .ls-laR.gz";
+            _mysystem($cmd);
+            return [500, "Indexing did not succeed, please check: $?"] if $?;
+        }
+        my $cmd = "rsync ".shell_quote("$source/.ls-laR.gz")." ".
+            shell_quote("$target/");
         _mysystem($cmd);
-        return [500, "Indexing did not succeed, please check: $!"] if $?;
+        return [500, "Copying index did not succeed, please check: $?"] if $?;
     }
 
     [200, "OK"];
