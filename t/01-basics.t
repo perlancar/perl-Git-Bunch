@@ -305,6 +305,7 @@ TODO: {
     local $TODO = "todo";
     fail("arg: delete_branch");
     fail("arg: repos (skips nonrepo as well as repo)");
+    fail("sync tags");
 }
 
 delete_test_data("sync") if Test::More->builder->is_passing;
