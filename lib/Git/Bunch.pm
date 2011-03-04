@@ -490,8 +490,11 @@ sub backup_bunch {
         $log->info("Backing up bunch $source ===> $target ...");
         my $cmd = join(
             "",
-            "rsync -az ",
+            "rsync ",
+            ($args{extra_rsync_opts} ? map { shell_quote($_), " " }
+                 @{$args{extra_rsync_opts}} : ()),
             ($log->is_trace() ? "-Pv" : ($log->is_debug() ? "-v" : "")), " ",
+            "-az ",
             "--include / ",
             # dot-dirs are included recursively
             "--include '/.??*' --include '/.??*/**' ",
