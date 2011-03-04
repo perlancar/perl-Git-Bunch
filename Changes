@@ -1,5 +1,14 @@
 Revision history for Git-Bunch
 
+0.07    2011-03-04
+
+        Sort repos in sorted order.
+
+        Fix: pass extra_rsync_opts to rsync.
+
+        Fix test (git co -> git checkout).
+
+
 0.06    2011-02-28
 
         Update to the latest Sub::Spec: 'depends' clause -> 'deps'. Add a few
