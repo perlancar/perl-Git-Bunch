@@ -67,7 +67,7 @@ sub check_bunch {
     my %res;
     local $CWD = $source;
     my $i = 0;
-    for my $repo (grep {-d} <*>) {
+    for my $repo (sort grep {-d} <*>) {
         $CWD = $i++ ? "../$repo" : $repo;
         $log->debug("Checking repo $repo ...");
 
@@ -328,7 +328,7 @@ sub sync_bunch {
     local $CWD = $target;
     my %res;
   ENTRY:
-    for my $e (@entries) {
+    for my $e (sort @entries) {
         next if $e eq '.' || $e eq '..';
 
         if ($wanted_repos && !($e ~~ @$wanted_repos)) {
