@@ -274,7 +274,7 @@ write_file "src/bunch1/repo2/s1", "strawberry";
 system  "cd src/bunch1/repo2 && git branch b2";
 system  "cd src/bunch1/repo2 && git add s1 && ".
     "git commit -am 'commit3-master-repo2'";
-system  "cd src/bunch1/repo2 && git co b2";
+system  "cd src/bunch1/repo2 && git checkout b2";
 write_file "src/bunch1/repo2/s2", "spearmint";
 system  "cd src/bunch1/repo2 && git add s2 && ".
     "git commit -am 'commit4-b2-repo2'";
@@ -286,12 +286,12 @@ test_gb(
     status  => 200,
     test_res => sub {
         my ($res) = @_;
-        system "cd sync/1/repo2 && git co master";
+        system "cd sync/1/repo2 && git checkout master";
         is(slurp_cq("sync/1/repo2/s1"),
            "strawberry", "branch master: s1 added");
         ok(!(-e "sync/1/repo2/s2"), "branch master: s2 not added");
 
-        system "cd sync/1/repo2 && git co b2";
+        system "cd sync/1/repo2 && git checkout b2";
         is(slurp_cq("sync/1/repo2/s2"),
            "spearmint", "branch b2: s2 added");
         ok(!(-e "sync/1/repo2/s1"), "branch b2: s2 not added");
