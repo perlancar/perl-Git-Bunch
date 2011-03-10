@@ -194,7 +194,8 @@ sub _sync_repo {
             unlink "$src/$repo/.git/index.lock";
             unlink "$dest/$repo/.git/index.lock";
         }
-        $log->info("Updating branch $branch ...") if @src_branches > 1;
+        $log->info("Updating branch $branch of repo $repo ...")
+            if @src_branches > 1;
         $output = _myqx(
             join("",
                  "cd '$dest/$repo'; ",
@@ -204,28 +205,30 @@ sub _sync_repo {
              ));
         $exit = $? & 255;
         if ($exit == 0 && $output =~ /Already up-to-date/) {
-            $log->debug("Branch `$branch is up to date");
+            $log->debug("Branch $branch of repo $repo is up to date");
             next BRANCH;
         } elsif ($output =~ /^error: (.+)/m) {
             $log->error("Can't successfully git pull branch $branch: $1");
             return [500, "git pull branch $branch failed: $1"];
         } elsif ($exit == 0 &&
                      $output =~ /^Updating |^Merge made by recursive/m) {
-            $log->warn("Branch $branch updated") if @src_branches > 1;
-            $log->warn("Repo $repo updated"    ) if @src_branches == 1;
+            $log->warn("Branch $branch of repo $repo updated")
+                if @src_branches > 1;
+            $log->warn("Repo $repo updated")
+                if @src_branches == 1;
         } else {
             $log->error("Can't recognize 'git pull' output for ".
                             "branch $branch: exit=$exit, output=$output");
             return [500, "Can't recognize git pull output: $output"];
         }
-        $log->debug("Result of 'git pull' for branch $branch: ".
+        $log->debug("Result of 'git pull' for branch $branch of repo $repo: ".
                         "exit=$exit, output=$output");
 
         $output = _myqx("cd '$dest/$repo'; ".
                             "LANG=C git fetch --tags '$src/$repo' 2>&1");
         $exit = $? & 255;
         if ($exit != 0) {
-            $log->debug("Can't successfully fetch --tags: ".
+            $log->debug("Failed fetching tags: ".
                             "$output (exit=$exit)");
             return [500, "git fetch --tags failed: $1"];
         }
@@ -236,12 +239,12 @@ sub _sync_repo {
             next if $branch ~~ @src_branches;
             next if $branch eq 'master'; # can't delete master branch
             $changed_branch++;
-            $log->info("Deleting branch $branch because it no longer exists ".
-                           "in src ...");
+            $log->info("Deleting branch $branch of repo $repo because ".
+                           "it no longer exists in src ...");
             _mysystem("cd '$dest/$repo' && git checkout master 2>/dev/null && ".
                           "git branch -D '$branch' 2>/dev/null");
             if (($? & 255) != 0) {
-                $log->error("Can't successfully delete branch $branch: $?");
+                $log->error("Failed deleting branch $branch of repo $repo: $?");
             }
         }
     }
