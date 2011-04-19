@@ -283,6 +283,10 @@ _
             summary      => 'Specific git repos to sync, if not specified '.
                 'all repos in the bunch will be processed',
         }],
+        exclude_repos    => [array    => {
+            of           => 'str*',
+            summary      => 'Exclude some repos from processing',
+        }],
         delete_branch    => ['bool'   => {
             summary      => 'Whether to delete branches in dest repos '.
                 'not existing in source repos',
@@ -313,6 +317,9 @@ sub sync_bunch {
     my $wanted_repos  = $args{repos};
     return [400, "repos must be an array"]
         if defined($wanted_repos) && ref($wanted_repos) ne 'ARRAY';
+    my $exclude_repos = $args{exclude_repos};
+    return [400, "exclude_repos must be an array"]
+        if defined($exclude_repos) && ref($exclude_repos) ne 'ARRAY';
     my $delete_branch = $args{delete_branch} // 0;
 
     my $cmd;
@@ -337,6 +344,11 @@ sub sync_bunch {
         if ($wanted_repos && !($e ~~ @$wanted_repos)) {
             $log->debugf("Repo $e is not in wanted repos (%s), skipped",
                          $wanted_repos);
+            next ENTRY;
+        }
+        if ($exclude_repos && $e ~~ @$exclude_repos) {
+            $log->debugf("Repo $e is in exclude_repos (%s), skipped",
+                         $exclude_repos);
             next ENTRY;
         }
 
