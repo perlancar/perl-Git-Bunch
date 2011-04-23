@@ -1,5 +1,10 @@
 Revision history for Git-Bunch
 
+0.09    2011-04-19
+
+        Add --exclude_repos to sync_bunch.
+
+
 0.08    2011-03-04
 
         Fix test when run as root.
