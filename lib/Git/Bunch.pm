@@ -278,14 +278,25 @@ _
             summary      => 'Destination bunch',
             arg_pos      => 1,
         }],
-        repos            => ['array'   => {
+        include_repos    => ['array'   => {
             of           => 'str*',
             summary      => 'Specific git repos to sync, if not specified '.
                 'all repos in the bunch will be processed',
+            arg_aliases  => {
+                repos => {},
+            },
+            arg_pos      => 2,
+            arg_greedy   => 1,
+        }],
+        include_repos_pat=> ['str' => {
+            summary      => 'Specify regex pattern of repos to include',
         }],
         exclude_repos    => [array    => {
             of           => 'str*',
             summary      => 'Exclude some repos from processing',
+        }],
+        exclude_repos_pat=> ['str' => {
+            summary      => 'Specify regex pattern of repos to exclude',
         }],
         delete_branch    => ['bool'   => {
             summary      => 'Whether to delete branches in dest repos '.
@@ -314,12 +325,18 @@ sub sync_bunch {
     my $target        = $args{target} or return [400, "Please specify target"];
     $res = _check_bunch_sanity(\$target, 'Target', 0);
     return $res unless $res->[0] == 200;
-    my $wanted_repos  = $args{repos};
-    return [400, "repos must be an array"]
-        if defined($wanted_repos) && ref($wanted_repos) ne 'ARRAY';
+    my $include_repos = $args{include_repos};
+    return [400, "include_repos must be an array"]
+        if defined($include_repos) && ref($include_repos) ne 'ARRAY';
+    my $include_repos_pat = $args{include_repos_pat};
+    return [400, "Invalid include_repos_pat: $@"]
+        if defined($include_repos_pat) && !(eval q{qr/$include_repos_pat/});
     my $exclude_repos = $args{exclude_repos};
     return [400, "exclude_repos must be an array"]
         if defined($exclude_repos) && ref($exclude_repos) ne 'ARRAY';
+    my $exclude_repos_pat = $args{exclude_repos_pat};
+    return [400, "Invalid exclude_repos_pat: $@"]
+        if defined($exclude_repos_pat) && !(eval q{qr/$exclude_repos_pat/});
     my $delete_branch = $args{delete_branch} // 0;
 
     my $cmd;
@@ -341,14 +358,24 @@ sub sync_bunch {
     for my $e (sort @entries) {
         next if $e eq '.' || $e eq '..';
 
-        if ($wanted_repos && !($e ~~ @$wanted_repos)) {
-            $log->debugf("Repo $e is not in wanted repos (%s), skipped",
-                         $wanted_repos);
+        if ($include_repos && !($e ~~ @$include_repos)) {
+            $log->debugf("Repo $e is not in include_repos (%s), skipped",
+                         $include_repos);
+            next ENTRY;
+        }
+        if (defined($include_repos_pat) && $e !~ qr/$include_repos_pat/) {
+            $log->debugf("Repo $e doesn't match include_repos_pat(%s), skipped",
+                         $include_repos_pat);
             next ENTRY;
         }
         if ($exclude_repos && $e ~~ @$exclude_repos) {
             $log->debugf("Repo $e is in exclude_repos (%s), skipped",
                          $exclude_repos);
+            next ENTRY;
+        }
+        if (defined($exclude_repos_pat) && $e =~ qr/$exclude_repos_pat/) {
+            $log->debugf("Repo $e matches exclude_repos_pat(%s), skipped",
+                         $exclude_repos_pat);
             next ENTRY;
         }
 
