@@ -88,10 +88,17 @@ sub check_bunch {
 
         $has_unclean++;
         if ($exit == 0 &&
-                     $output =~ /Changes to be committed|Changed but/) {
+                $output =~ /(
+                                Changes \s to \s be \s committed |
+                                Changes \s not \s staged \s for \s commit |
+                                Changed \s but
+                            )/mx) {
             $log->warn("$repo needs commit");
             $res{$repo} = [500, "Needs commit"];
-        } elsif ($exit == 0 && $output =~ /Untracked files/) {
+        } elsif ($exit == 0 &&
+                     $output =~ /(
+                                     Untracked \s files
+                                 )/x) {
             $log->warn("$repo has untracked files");
             $res{$repo} = [500, "Has untracked files"];
         } elsif ($exit == 128 && $output =~ /Not a git repository/) {
