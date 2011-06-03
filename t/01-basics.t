@@ -13,6 +13,9 @@ use Git::Bunch qw(check_bunch sync_bunch backup_bunch);
 use Probe::Perl;
 use String::ShellQuote;
 
+# XXX --exclude_repos_pat
+# XXX --include_repos_pat
+
 for (qw(git rsync rm)) {
     plan skip_all => "$_ not available in PATH" unless which($_);
 }
