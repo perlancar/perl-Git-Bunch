@@ -37,12 +37,15 @@ test_gb(
     status  => 200,
     test_res => sub {
         my ($res) = @_;
+        #diag explain $res;
         is( $res->[2]{repo1}[0], 200, "repo1 is clean");
         is( $res->[2]{repo2}[0], 200, "repo2 is clean");
         ok(!$res->[2]{"file1"}, "file is skipped");
         ok(!$res->[2]{".nonrepo1"}, "dotdir is skipped");
     },
 );
+goto DONE_TESTING;
+
 test_gb(
     sub     => "check_bunch",
     name    => "handling / suffix in bunch name",

@@ -90,12 +90,12 @@ sub _check_common_args {
 
 # return true if entry should be skipped
 sub _skip_process_entry {
-    my ($e, $args, $skip_non_repo) = @_;
+    my ($e, $args, $dir, $skip_non_repo) = @_;
 
     next if $e eq '.' || $e eq '..';
 
     if ($skip_non_repo) {
-        unless (-d "$args->{source}/$e/.git") {
+        unless (-d "$dir/.git") {
             $log->warn("Skipped $e (not a git repo), ".
                            "please remove it or rename to .$e");
             return 1;
@@ -125,8 +125,8 @@ sub _skip_process_entry {
 }
 
 sub _skip_process_repo {
-    my ($repo, $args) = @_;
-    _skip_process_entry($repo, $args, 1);
+    my ($repo, $args, $dir) = @_;
+    _skip_process_entry($repo, $args, $dir, 1);
 }
 
 sub _check_bunch_sanity {
@@ -182,7 +182,7 @@ sub check_bunch {
   REPO:
     for my $repo (sort grep {-d} <*>) {
         $CWD = $i++ ? "../$repo" : $repo;
-        next REPO if _skip_process_repo($repo, \%args);
+        next REPO if _skip_process_repo($repo, \%args, ".");
 
         $log->debug("Checking repo $repo ...");
 
@@ -429,7 +429,7 @@ sub sync_bunch {
     my %res;
   ENTRY:
     for my $e (sort @entries) {
-        next ENTRY if _skip_process_entry($e, \%args);
+        next ENTRY if _skip_process_entry($e, \%args, "$source/$e");
         my $is_repo = (-d "$source/$e") && (-d "$source/$e/.git");
         if (!$is_repo) {
             $log->info("Sync-ing non-git file/directory $e ...");
@@ -505,7 +505,7 @@ sub exec_bunch {
   REPO:
     for my $repo (grep {-d} <*>) {
         $CWD = $i++ ? "../$repo" : $repo;
-        next REPO if _skip_process_repo($repo, \%args);
+        next REPO if _skip_process_repo($repo, \%args, ".");
         $log->info("Executing command on $repo ...");
         _mysystem($command);
         if ($?) {
@@ -633,7 +633,7 @@ sub backup_bunch {
         my @included_repos;
       REPO:
         for my $repo (grep {-d} <*>) {
-            next REPO if _skip_process_repo($repo, \%args);
+            next REPO if _skip_process_repo($repo, \%args, $repo);
             push @included_repos, $repo;
         }
 
