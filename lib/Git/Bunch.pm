@@ -103,22 +103,22 @@ sub _skip_process_entry {
     }
     my $ir = $args->{include_repos};
     if ($ir && !($e ~~ @$ir)) {
-        $log->info("Skipped $e (not in include_repos)");
+        $log->debug("Skipped $e (not in include_repos)");
         return 1;
     }
     my $irp = $args->{include_repos_pat};
     if (defined($irp) && $e !~ qr/$irp/) {
-        $log->info("Skipped $e (not matched include_repos_pat)");
+        $log->debug("Skipped $e (not matched include_repos_pat)");
         return 1;
     }
     my $er = $args->{exclude_repos};
     if ($er && $e ~~ @$er) {
-        $log->info("Skipped $e (in exclude_repos)");
+        $log->debug("Skipped $e (in exclude_repos)");
         return 1;
     }
     my $erp = $args->{exclude_repos_pat};
     if (defined($erp) && $e =~ qr/$erp/) {
-        $log->info("Skipped $e (not matched exclude_repos_pat)");
+        $log->debug("Skipped $e (not matched exclude_repos_pat)");
         return 1;
     }
     return;
