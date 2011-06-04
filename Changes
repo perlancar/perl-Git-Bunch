@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.11    2011-06-04
+
+        [BUG FIXES]
+
+        * Fix spec for exec_bunch().
+
+
 0.10    2011-06-04
 
         [NEW FEATURES]
