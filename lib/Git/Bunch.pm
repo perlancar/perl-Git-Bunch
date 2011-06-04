@@ -480,11 +480,10 @@ command.
 _
     args          => {
         %common_args_spec,
-        %target_arg_spec,
         command   => ['str*'   => {
             summary      => 'Command to execute',
             default      => 0,
-            arg_pos      => 2,
+            arg_pos      => 1,
         }],
     },
 };
