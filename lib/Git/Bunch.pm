@@ -13,7 +13,7 @@ use String::ShellQuote;
 
 require Exporter;
 our @ISA       = qw(Exporter);
-our @EXPORT_OK = qw(check_bunch sync_bunch backup_bunch);
+our @EXPORT_OK = qw(check_bunch sync_bunch backup_bunch exec_bunch);
 
 our %SPEC;
 
@@ -29,8 +29,6 @@ our %common_args_spec = (
         arg_aliases  => {
             repos => {},
         },
-        arg_pos      => 2,
-        arg_greedy   => 1,
     }],
     include_repos_pat=> ['str' => {
         summary      => 'Specify regex pattern of repos to include',
@@ -466,6 +464,57 @@ sub sync_bunch {
             );
             $res{$e} = $res;
         }
+    }
+
+    [200, "OK", \%res];
+}
+
+$SPEC{exec_bunch} = {
+    summary       =>
+        'Execute a command for each repo in the bunch',
+    description   => <<'_',
+
+For each git repository in the bunch, will chdir to it and execute specified
+command.
+
+_
+    args          => {
+        %common_args_spec,
+        %target_arg_spec,
+        command   => ['str*'   => {
+            summary      => 'Command to execute',
+            default      => 0,
+            arg_pos      => 2,
+        }],
+    },
+};
+sub exec_bunch {
+    my %args = @_;
+    my $res;
+
+    # XXX schema
+    $res = _check_common_args(\%args);
+    return $res unless $res->[0] == 200;
+    my $source  = $args{source};
+    my $command = $args{command};
+    defined($command) or return [400, "Please specify command"];
+
+    local $CWD = $source;
+    my %res;
+    my $i = 0;
+  REPO:
+    for my $repo (grep {-d} <*>) {
+        $CWD = $i++ ? "../$repo" : $repo;
+        next REPO if _skip_process_repo($repo, \%args);
+        $log->info("Executing command on $repo ...");
+        _mysystem($command);
+        if ($?) {
+            $log->warn("Command failed: $?");
+            $res{$repo} = [500, "Command failed: $?"];
+        } else {
+            $res{$repo} = [200, "Command successful"];
+        }
+        next REPO;
     }
 
     [200, "OK", \%res];
