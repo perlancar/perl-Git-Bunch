@@ -92,7 +92,7 @@ sub _check_common_args {
 sub _skip_process_entry {
     my ($e, $args, $dir, $skip_non_repo) = @_;
 
-    next if $e eq '.' || $e eq '..';
+    return 1 if $e eq '.' || $e eq '..';
 
     if ($skip_non_repo) {
         unless (-d "$dir/.git") {
@@ -629,12 +629,23 @@ sub backup_bunch {
     if ($backup) {
         $log->info("Backing up bunch $source ===> $target ...");
 
-        local $CWD = $source;
         my @included_repos;
-      REPO:
-        for my $repo (grep {-d} <*>) {
-            next REPO if _skip_process_repo($repo, \%args, $repo);
-            push @included_repos, $repo;
+        my @files;
+        my @nongit_dirs;
+        my @entries;
+        opendir my($d), $source; @entries = readdir($d);
+      ENTRY:
+        for my $e (@entries) {
+            next ENTRY if _skip_process_entry($e, \%args, "$source/$e");
+            my $is_dir = (-d "$source/$e");
+            my $is_repo = $is_dir && (-d "$source/$e/.git");
+            if ($is_repo) {
+                push @included_repos, $e;
+            } elsif ($is_dir) {
+                push @nongit_dirs, $e;
+            } else {
+                push @files, $e;
+            }
         }
 
         my $cmd = join(
@@ -655,6 +666,11 @@ sub backup_bunch {
                     "--include ", shell_quote("/$_/.git/**"), " ",
                 )
             } @included_repos),
+            (map {
+                (
+                    "--include ", shell_quote("/$_"), " ",
+                )
+            } @files, @nongit_dirs),
             # exclude everything else
             "--exclude '*' ",
             "--del --force ",

@@ -44,7 +44,6 @@ test_gb(
         ok(!$res->[2]{".nonrepo1"}, "dotdir is skipped");
     },
 );
-goto DONE_TESTING;
 test_gb(
     sub     => "check_bunch",
     name    => "handling / suffix in bunch name",
