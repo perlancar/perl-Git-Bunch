@@ -1,5 +1,18 @@
 Revision history for Git-Bunch
 
+0.10    2011-06-0x
+
+        [NEW FEATURES]
+
+        * New function: exec_bunch() ("gitbunch exec").
+
+        [ENHANCEMENTS]
+
+        * Add --exclude_repos_pat and --include_repos_pat options.
+
+        * Exclude/include repos options added to all functions.
+
+
 0.09    2011-04-19
 
         Add --exclude_repos to sync_bunch.
