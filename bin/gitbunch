@@ -23,6 +23,7 @@ run(
         check  => { sub => 'check_bunch'  },
         sync   => { sub => 'sync_bunch'   },
         backup => { sub => 'backup_bunch' },
+        exec   => { sub => 'exec_bunch'   },
     }
 );
 
