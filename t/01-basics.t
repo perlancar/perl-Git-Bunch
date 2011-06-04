@@ -45,7 +45,6 @@ test_gb(
     },
 );
 goto DONE_TESTING;
-
 test_gb(
     sub     => "check_bunch",
     name    => "handling / suffix in bunch name",
@@ -68,12 +67,12 @@ test_gb(
 mkdir "src/bunch1/nonrepo2";
 test_gb(
     sub     => "check_bunch",
-    name    => "reject nondot, nongit dir",
+    name    => "skip nondot, nongit dir",
     args    => {source=>"src/bunch1"},
     status  => 200,
     test_res => sub {
         my ($res) = @_;
-        is( $res->[2]{nonrepo2}[0], 400, "nonrepo2 is rejected");
+        ok(!$res->[2]{nonrepo2}, "nonrepo2 is skipped");
     },
 );
 rmdir "src/bunch1/nonrepo2";
