@@ -486,6 +486,7 @@ _
             arg_pos      => 1,
         }],
     },
+    cmdline_suppress_output => 1,
 };
 sub exec_bunch {
     my %args = @_;
