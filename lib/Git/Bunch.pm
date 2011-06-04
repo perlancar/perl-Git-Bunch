@@ -17,6 +17,120 @@ our @EXPORT_OK = qw(check_bunch sync_bunch backup_bunch);
 
 our %SPEC;
 
+our %common_args_spec = (
+    source           => ['str*'   => {
+        summary      => 'Directory to check',
+        arg_pos      => 0,
+    }],
+    include_repos    => ['array'   => {
+        of           => 'str*',
+        summary      => 'Specific git repos to sync, if not specified '.
+            'all repos in the bunch will be processed',
+        arg_aliases  => {
+            repos => {},
+        },
+        arg_pos      => 2,
+        arg_greedy   => 1,
+    }],
+    include_repos_pat=> ['str' => {
+        summary      => 'Specify regex pattern of repos to include',
+    }],
+    exclude_repos    => [array    => {
+        of           => 'str*',
+        summary      => 'Exclude some repos from processing',
+    }],
+    exclude_repos_pat=> ['str' => {
+        summary      => 'Specify regex pattern of repos to exclude',
+    }],
+);
+
+our %target_arg_spec = (
+    target           => ['str*'   => {
+        summary      => 'Destination bunch',
+        arg_pos      => 1,
+    }],
+);
+
+sub _check_common_args {
+    my ($args, $requires_target) = @_;
+    my $res;
+
+    $args->{source} or return [400, "Please specify source"];
+    $args->{source} =~ s!/+$!!;
+    $res = _check_bunch_sanity(\$args->{source}, 'Source');
+    return $res unless $res->[0] == 200;
+
+    my $ir = $args->{include_repos};
+    return [400, "include_repos must be an array"]
+        if defined($ir) && ref($ir) ne 'ARRAY';
+    my $irp = $args->{include_repos_pat};
+    if (defined $irp) {
+        return [400, "Invalid include_repos_pat: must be a string"]
+            if ref($irp);
+        return [400, "Invalid include_repos_pat: $@"]
+            if !(eval q{qr/$irp/});
+    }
+    my $er = $args->{exclude_repos};
+    return [400, "exclude_repos must be an array"]
+        if defined($er) && ref($er) ne 'ARRAY';
+    my $erp = $args->{exclude_repos_pat};
+    if (defined $erp) {
+        return [400, "Invalid exclude_repos_pat: must be a string"]
+            if ref($erp);
+        return [400, "Invalid exclude_repos_pat: must be a string"]
+            if !(eval q{qr/$erp/});
+    }
+
+    if ($requires_target) {
+        $args->{target} or return [400, "Please specify target"];
+        $res = _check_bunch_sanity(\$args->{target}, 'Target', 0);
+        return $res unless $res->[0] == 200;
+    }
+
+    [200, "OK"];
+}
+
+# return true if entry should be skipped
+sub _skip_process_entry {
+    my ($e, $args, $skip_non_repo) = @_;
+
+    next if $e eq '.' || $e eq '..';
+
+    if ($skip_non_repo) {
+        unless (-d "$args->{source}/$e/.git") {
+            $log->warn("Skipped $e (not a git repo), ".
+                           "please remove it or rename to .$e");
+            return 1;
+        }
+    }
+    my $ir = $args->{include_repos};
+    if ($ir && !($e ~~ @$ir)) {
+        $log->info("Skipped $e (not in include_repos)");
+        return 1;
+    }
+    my $irp = $args->{include_repos_pat};
+    if (defined($irp) && $e !~ qr/$irp/) {
+        $log->info("Skipped $e (not matched include_repos_pat)");
+        return 1;
+    }
+    my $er = $args->{exclude_repos};
+    if ($er && $e ~~ @$er) {
+        $log->info("Skipped $e (in exclude_repos)");
+        return 1;
+    }
+    my $erp = $args->{exclude_repos_pat};
+    if (defined($erp) && $e =~ qr/$erp/) {
+        $log->info("Skipped $e (not matched exclude_repos_pat)");
+        return 1;
+    }
+    return;
+}
+
+sub _skip_process_repo {
+    my ($repo, $args) = @_;
+    _skip_process_entry($repo, $args, 1);
+}
+
 sub _check_bunch_sanity {
     my ($path_ref, $title, $must_exist) = @_;
     $title //= "Directory";
@@ -43,10 +157,7 @@ Will die if can't chdir into bunch or git repository.
 
 _
     args          => {
-        source           => ['str*'   => {
-            summary      => 'Directory to check',
-            arg_pos      => 0,
-        }],
+        %common_args_spec,
     },
     cmdline_suppress_output => 1,
     deps => {
@@ -57,9 +168,12 @@ _
 };
 sub check_bunch {
     my %args = @_;
-    my $source = $args{source} or return [400, "Please specify source"];
-    my $res = _check_bunch_sanity(\$source, 'Source');
+    my $res;
+
+    # XXX schema
+    $res = _check_common_args(\%args);
     return $res unless $res->[0] == 200;
+    my $source = $args{source};
 
     $log->info("Checking bunch $source ...");
 
@@ -67,16 +181,12 @@ sub check_bunch {
     my %res;
     local $CWD = $source;
     my $i = 0;
+  REPO:
     for my $repo (sort grep {-d} <*>) {
         $CWD = $i++ ? "../$repo" : $repo;
-        $log->debug("Checking repo $repo ...");
+        next REPO if _skip_process_repo($repo, \%args);
 
-        unless (-d ".git") {
-            $log->warn("$repo is not a git repo, ".
-                           "please remove it or rename to .$repo");
-            $res{$repo} = [400, "Not a git repository"];
-            next;
-        };
+        $log->debug("Checking repo $repo ...");
 
         my $output = `LANG=C git status 2>&1`;
         my $exit = $? & 255;
@@ -277,34 +387,8 @@ For all other non-git repos, will simply synchronize by one-way rsync.
 
 _
     args          => {
-        source           => ['str*'   => {
-            summary      => 'Source bunch',
-            arg_pos      => 0,
-        }],
-        target           => ['str*'   => {
-            summary      => 'Destination bunch',
-            arg_pos      => 1,
-        }],
-        include_repos    => ['array'   => {
-            of           => 'str*',
-            summary      => 'Specific git repos to sync, if not specified '.
-                'all repos in the bunch will be processed',
-            arg_aliases  => {
-                repos => {},
-            },
-            arg_pos      => 2,
-            arg_greedy   => 1,
-        }],
-        include_repos_pat=> ['str' => {
-            summary      => 'Specify regex pattern of repos to include',
-        }],
-        exclude_repos    => [array    => {
-            of           => 'str*',
-            summary      => 'Exclude some repos from processing',
-        }],
-        exclude_repos_pat=> ['str' => {
-            summary      => 'Specify regex pattern of repos to exclude',
-        }],
+        %common_args_spec,
+        %target_arg_spec,
         delete_branch    => ['bool'   => {
             summary      => 'Whether to delete branches in dest repos '.
                 'not existing in source repos',
@@ -321,30 +405,14 @@ _
 };
 sub sync_bunch {
     my %args = @_;
-
     my $res;
 
     # XXX schema
-    my $source        = $args{source} or return [400, "Please specify source"];
-    $source           =~ s!/+$!!;
-    $res = _check_bunch_sanity(\$source, 'Source');
+    $res = _check_common_args(\%args, 1);
     return $res unless $res->[0] == 200;
-    my $target        = $args{target} or return [400, "Please specify target"];
-    $res = _check_bunch_sanity(\$target, 'Target', 0);
-    return $res unless $res->[0] == 200;
-    my $include_repos = $args{include_repos};
-    return [400, "include_repos must be an array"]
-        if defined($include_repos) && ref($include_repos) ne 'ARRAY';
-    my $include_repos_pat = $args{include_repos_pat};
-    return [400, "Invalid include_repos_pat: $@"]
-        if defined($include_repos_pat) && !(eval q{qr/$include_repos_pat/});
-    my $exclude_repos = $args{exclude_repos};
-    return [400, "exclude_repos must be an array"]
-        if defined($exclude_repos) && ref($exclude_repos) ne 'ARRAY';
-    my $exclude_repos_pat = $args{exclude_repos_pat};
-    return [400, "Invalid exclude_repos_pat: $@"]
-        if defined($exclude_repos_pat) && !(eval q{qr/$exclude_repos_pat/});
     my $delete_branch = $args{delete_branch} // 0;
+    my $source = $args{source};
+    my $target = $args{target};
 
     my $cmd;
 
@@ -363,29 +431,7 @@ sub sync_bunch {
     my %res;
   ENTRY:
     for my $e (sort @entries) {
-        next if $e eq '.' || $e eq '..';
-
-        if ($include_repos && !($e ~~ @$include_repos)) {
-            $log->debugf("Repo $e is not in include_repos (%s), skipped",
-                         $include_repos);
-            next ENTRY;
-        }
-        if (defined($include_repos_pat) && $e !~ qr/$include_repos_pat/) {
-            $log->debugf("Repo $e doesn't match include_repos_pat(%s), skipped",
-                         $include_repos_pat);
-            next ENTRY;
-        }
-        if ($exclude_repos && $e ~~ @$exclude_repos) {
-            $log->debugf("Repo $e is in exclude_repos (%s), skipped",
-                         $exclude_repos);
-            next ENTRY;
-        }
-        if (defined($exclude_repos_pat) && $e =~ qr/$exclude_repos_pat/) {
-            $log->debugf("Repo $e matches exclude_repos_pat(%s), skipped",
-                         $exclude_repos_pat);
-            next ENTRY;
-        }
-
+        next ENTRY if _skip_process_entry($e, \%args);
         my $is_repo = (-d "$source/$e") && (-d "$source/$e/.git");
         if (!$is_repo) {
             $log->info("Sync-ing non-git file/directory $e ...");
@@ -448,14 +494,8 @@ implemented routine to restore this data into restored files.
 
 _
     args          => {
-        source           => ['str*'   => {
-            summary      => 'Directory to backup',
-            arg_pos      => 0,
-        }],
-        target           => ['str*'   => {
-            summary      => 'Backup destination',
-            arg_pos      => 1,
-        }],
+        %common_args_spec,
+        %target_arg_spec,
         check            => ['bool'   => {
             summary      =>
                 'Whether to check bunch first before doing backup',
@@ -473,6 +513,9 @@ _
         index            => ['bool'   => {
             summary      => 'Whether to do "ls -laR" after backup',
             default      => 1,
+        }],
+        delete_excluded  => [bool    => {
+            summary      => 'Delete excluded repos in target',
         }],
         extra_rsync_opts => [array    => {
             of           => 'str*',
@@ -512,15 +555,14 @@ sub backup_bunch {
     my $res;
 
     # XXX schema
-    my $source    = $args{source} or return [400, "Please specify source"];
-    $res = _check_bunch_sanity(\$source, 'Source');
+    $res = _check_common_args(\%args);
     return $res unless $res->[0] == 200;
-    my $target    = $args{target} or return [400, "Please specify target"];
-    $res = _check_bunch_sanity(\$target, 'Target', 0);
-    return $res unless $res->[0] == 200;
+    my $source    = $args{source};
+    my $target    = $args{target};
     my $check     = $args{check}  // 1;
     my $backup    = $args{backup} // 1;
     my $index     = $args{index}  // 1;
+    my $delete_excluded = $args{delete_excluded};
 
     if ($check) {
         $res = check_bunch(source => $source);
@@ -537,6 +579,15 @@ sub backup_bunch {
 
     if ($backup) {
         $log->info("Backing up bunch $source ===> $target ...");
+
+        local $CWD = $source;
+        my @included_repos;
+      REPO:
+        for my $repo (grep {-d} <*>) {
+            next REPO if _skip_process_repo($repo, \%args);
+            push @included_repos, $repo;
+        }
+
         my $cmd = join(
             "",
             "rsync ",
@@ -545,12 +596,20 @@ sub backup_bunch {
             ($log->is_trace() ? "-Pv" : ($log->is_debug() ? "-v" : "")), " ",
             "-az ",
             "--include / ",
-            # dot-dirs are included recursively
+            # dot-dirs are always included recursively
             "--include '/.??*' --include '/.??*/**' ",
             # nondot-dirs are assumed git as repos, only .git/ copied from each
-            "--include '/*' --include '/*/.git' --include '/*/.git/**' ",
+            (map {
+                (
+                    "--include ", shell_quote("/$_"), " ",
+                    "--include ", shell_quote("/$_/.git"), " ",
+                    "--include ", shell_quote("/$_/.git/**"), " ",
+                )
+            } @included_repos),
+            # exclude everything else
             "--exclude '*' ",
-            "--del --force --delete-excluded ",
+            "--del --force ",
+            ($args{delete_excluded} ? "--delete-excluded " : ""),
             shell_quote($source), "/ ",
             shell_quote($target), "/"
         );

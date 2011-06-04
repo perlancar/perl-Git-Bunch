@@ -15,6 +15,7 @@ use String::ShellQuote;
 
 # XXX --exclude_repos_pat
 # XXX --include_repos_pat
+# XXX backup: --delete_excluded
 
 for (qw(git rsync rm)) {
     plan skip_all => "$_ not available in PATH" unless which($_);
