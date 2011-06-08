@@ -182,15 +182,52 @@ SKIP: {
                 like(`cd bak/1/$repo && git log`, qr/commit1-$repo/i,
                      "repo $repo copied (git log works)");
             }
+
             ok((-f "src/bunch1/.ls-laR.gz"), "index created");
             ok((-f "bak/1/.ls-laR.gz"), "index copied");
+            my $index = `gzip -cd bak/1/.ls-laR.gz`;
+            ok($index =~ /repo1:$/m, "index lists repo");
+            ok($index =~ /file1$/m, "index lists file");
+            ok($index =~ /\.nonrepo1:$/m, "index lists non-git dir");
         },
     );
   TODO: {
         local $TODO = "todo";
         fail("update backup");
     }
+
+    test_gb(
+        sub     => "backup_bunch",
+        name    => "--exclude-files --exclude-non-git-dirs",
+        args    => {source=>"src/bunch1/", target=>"bak/2/",
+                    exclude_files=>1, exclude_non_git_dirs=>1},
+        status  => 200,
+        test_res => sub {
+            my ($res) = @_;
+            ok((-d "bak/2"), "target directory created") or return;
+            ok(!(-e "bak/2/file1"), "files not copied");
+            ok(!(-e "bak/2/.nonrepo1"), "nongit dotdir not copied");
+            for my $repo (qw(repo1 repo2)) {
+                ok( (-d "bak/2/$repo"), "repo $repo copied (exists)");
+                ok( (-d "bak/2/$repo/.git"), "repo $repo copied (.git exists)");
+                ok(!(-e "bak/2/$repo/a"),
+                   "repo $repo copied (working copy not copied)");
+                like(`cd bak/2/$repo && git log`, qr/commit1-$repo/i,
+                     "repo $repo copied (git log works)");
+            }
+
+            ok((-f "src/bunch1/.ls-laR.gz"), "index created");
+            ok((-f "bak/2/.ls-laR.gz"), "index copied");
+            my $index = `gzip -cd bak/2/.ls-laR.gz`;
+            ok($index =~ /repo1:$/m, "index lists repo");
+            ok($index !~ /file1$/m, "index doesn't list excluded file");
+            ok($index !~ /\.nonrepo1:$/m,
+               "index doesn't list excluded non-git dir");
+        },
+    );
+
 }
+goto DONE_TESTING;
 delete_test_data("bak") if Test::More->builder->is_passing;
 
 test_gb(
@@ -313,6 +350,8 @@ TODO: {
     fail("arg: repos (skips nonrepo as well as repo)");
     fail("sync tags");
 }
+
+# TODO: test options exclude_files=>1, exclude_non_git_dirs=>1 on sync
 
 delete_test_data("sync") if Test::More->builder->is_passing;
 

@@ -37,6 +37,26 @@ our %common_args_spec = (
         of           => 'str*',
         summary      => 'Exclude some repos from processing',
     }],
+    exclude_non_git_dirs => [bool => {
+        summary      => 'Exclude non-git dirs from processing',
+        description  => <<'_',
+
+This only applies to 'backup_bunch' and 'sync_bunch' operations. Operations like
+'check_bunch' and 'exec_bunch' already ignore these and only operate on git
+repos.
+
+_
+    }],
+    exclude_files    => [bool => {
+        summary      => 'Exclude files from processing',
+        description  => <<'_',
+
+This only applies to 'backup_bunch' and 'sync_bunch' operations. Operations like
+'check_bunch' and 'exec_bunch' already ignore these and only operate on git
+repos.
+
+_
+    }],
     exclude_repos_pat=> ['str' => {
         summary      => 'Specify regex pattern of repos to exclude',
     }],
@@ -93,32 +113,39 @@ sub _skip_process_entry {
     my ($e, $args, $dir, $skip_non_repo) = @_;
 
     return 1 if $e eq '.' || $e eq '..';
+    my $is_repo = (-d $dir) && (-d "$dir/.git");
 
-    if ($skip_non_repo) {
-        unless (-d "$dir/.git") {
-            $log->warn("Skipped $e (not a git repo), ".
-                           "please remove it or rename to .$e");
+    if ($skip_non_repo && !$is_repo) {
+        $log->warn("Skipped $e (not a git repo), ".
+                       "please remove it or rename to .$e");
+        return 1;
+    }
+    if ($is_repo) {
+        my $ir = $args->{include_repos};
+        if ($ir && !($e ~~ @$ir)) {
+            $log->debug("Skipped $e (not in include_repos)");
             return 1;
         }
-    }
-    my $ir = $args->{include_repos};
-    if ($ir && !($e ~~ @$ir)) {
-        $log->debug("Skipped $e (not in include_repos)");
+        my $irp = $args->{include_repos_pat};
+        if (defined($irp) && $e !~ qr/$irp/) {
+            $log->debug("Skipped $e (not matched include_repos_pat)");
+            return 1;
+        }
+        my $er = $args->{exclude_repos};
+        if ($er && $e ~~ @$er) {
+            $log->debug("Skipped $e (in exclude_repos)");
+            return 1;
+        }
+        my $erp = $args->{exclude_repos_pat};
+        if (defined($erp) && $e =~ qr/$erp/) {
+            $log->debug("Skipped $e (not matched exclude_repos_pat)");
+            return 1;
+        }
+    } elsif ((-f $dir) && $args->{exclude_files}) {
+        $log->debug("Skipped $e (exclude_files)");
         return 1;
-    }
-    my $irp = $args->{include_repos_pat};
-    if (defined($irp) && $e !~ qr/$irp/) {
-        $log->debug("Skipped $e (not matched include_repos_pat)");
-        return 1;
-    }
-    my $er = $args->{exclude_repos};
-    if ($er && $e ~~ @$er) {
-        $log->debug("Skipped $e (in exclude_repos)");
-        return 1;
-    }
-    my $erp = $args->{exclude_repos_pat};
-    if (defined($erp) && $e =~ qr/$erp/) {
-        $log->debug("Skipped $e (not matched exclude_repos_pat)");
+    } elsif ((-d $dir) && $args->{exclude_non_git_dirs}) {
+        $log->debug("Skipped $e (exclude_non_git_dirs)");
         return 1;
     }
     return;
@@ -626,28 +653,27 @@ sub backup_bunch {
             or return [500, "Can't create target directory $target: $!"];
     }
 
+    my @included_repos;
+    my @files;
+    my @nongit_dirs;
+    my @entries;
+    opendir my($d), $source; @entries = readdir($d);
+  ENTRY:
+    for my $e (@entries) {
+        next ENTRY if _skip_process_entry($e, \%args, "$source/$e");
+        my $is_dir = (-d "$source/$e");
+        my $is_repo = $is_dir && (-d "$source/$e/.git");
+        if ($is_repo) {
+            push @included_repos, $e;
+        } elsif ($is_dir) {
+            push @nongit_dirs, $e unless $args{exclude_non_git_dirs};
+        } else {
+            push @files, $e unless $args{exclude_files};
+        }
+    }
+
     if ($backup) {
         $log->info("Backing up bunch $source ===> $target ...");
-
-        my @included_repos;
-        my @files;
-        my @nongit_dirs;
-        my @entries;
-        opendir my($d), $source; @entries = readdir($d);
-      ENTRY:
-        for my $e (@entries) {
-            next ENTRY if _skip_process_entry($e, \%args, "$source/$e");
-            my $is_dir = (-d "$source/$e");
-            my $is_repo = $is_dir && (-d "$source/$e/.git");
-            if ($is_repo) {
-                push @included_repos, $e;
-            } elsif ($is_dir) {
-                push @nongit_dirs, $e;
-            } else {
-                push @files, $e;
-            }
-        }
-
         my $cmd = join(
             "",
             "rsync ",
@@ -656,8 +682,6 @@ sub backup_bunch {
             ($log->is_trace() ? "-Pv" : ($log->is_debug() ? "-v" : "")), " ",
             "-az ",
             "--include / ",
-            # dot-dirs are always included recursively
-            "--include '/.??*' --include '/.??*/**' ",
             # nondot-dirs are assumed git as repos, only .git/ copied from each
             (map {
                 (
@@ -670,7 +694,13 @@ sub backup_bunch {
                 (
                     "--include ", shell_quote("/$_"), " ",
                 )
-            } @files, @nongit_dirs),
+            } @files),
+            (map {
+                (
+                    "--include ", shell_quote("/$_"), " ",
+                    "--include ", shell_quote("/$_/**"), " ",
+                )
+            } @nongit_dirs),
             # exclude everything else
             "--exclude '*' ",
             "--del --force ",
@@ -686,7 +716,14 @@ sub backup_bunch {
         $log->info("Indexing bunch $source ...");
         {
             local $CWD = $source;
-            my $cmd = "ls -laR | gzip -c > .ls-laR.gz";
+            my $cmd = join(
+                "",
+                "ls -laR ",
+                join(" ",
+                     map {shell_quote($_)}
+                         @files, @nongit_dirs, @included_repos),
+                " | gzip -c > .ls-laR.gz"
+            );
             _mysystem($cmd);
             return [500, "Indexing did not succeed, please check: $?"] if $?;
         }
