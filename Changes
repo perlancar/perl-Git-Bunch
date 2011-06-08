@@ -1,5 +1,16 @@
 Revision history for Git-Bunch
 
+0.13    2011-06-08
+
+        [ENHANCEMENTS]
+
+        * Add --exclude-files and --exclude-non-git-dirs options.
+
+        [BUG FIXES]
+
+        * backup_bunch: Do not index excluded items.
+
+
 0.12    2011-06-04
 
         No functional changes.
