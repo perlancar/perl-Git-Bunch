@@ -1,5 +1,15 @@
 Revision history for Git-Bunch
 
+0.14    2011-07-07
+
+        [INCOMPATIBLE CHANGES]
+
+        * sync: By default now uses 'rsync -rlptD' (-a minus -go) instead of
+          'rsync -a' when copying repo to target. This is because -a is
+          problematic on sshfs-mounted filesystem. Old behaviour is available by
+          setting rsync_opt_maintain_ownership to 1.
+
+
 0.13    2011-06-08
 
         [ENHANCEMENTS]
