@@ -419,6 +419,19 @@ _
                 'not existing in source repos',
             default      => 0,
         }],
+        rsync_opt_maintain_ownership => ['bool' => {
+            summary      => 'Whether or not, when rsync-ing from source, '.
+                'we use -a (= -rlptgoD) or -rlptD (-a minus -go)',
+            description  => <<'_',
+
+Sometimes using -a results in failure to preserve permission modes on
+sshfs-mounted filesystem, while -rlptD succeeds, so by default we don't maintain
+ownership. If you need to maintain ownership (e.g. you run as root and the repos
+are not owned by root), turn this option on.
+
+_
+            default      => 0,
+        }],
     },
     cmdline_suppress_output => 1,
     deps => {
@@ -448,6 +461,8 @@ sub sync_bunch {
     }
     $target = Cwd::abs_path($target);
 
+    my $a = $args{rsync_opt_maintain_ownership} ? "aH" : "rlptDH";
+
     my @entries;
     opendir my($d), $source; @entries = readdir($d);
 
@@ -460,7 +475,7 @@ sub sync_bunch {
         my $is_repo = (-d "$source/$e") && (-d "$source/$e/.git");
         if (!$is_repo) {
             $log->info("Sync-ing non-git file/directory $e ...");
-            $cmd = "rsync -az --del --force ".shell_quote("$source/$e")." .";
+            $cmd = "rsync -${a}z --del --force ".shell_quote("$source/$e")." .";
             _mysystem($cmd);
             if ($?) {
                 $log->warn("Rsync failed, please check: $?");
@@ -473,7 +488,7 @@ sub sync_bunch {
 
         if (!(-e $e)) {
             $log->info("Copying repo $e ...");
-            $cmd = "rsync -az ".shell_quote("$source/$e")." .";
+            $cmd = "rsync -${a}z ".shell_quote("$source/$e")." .";
             _mysystem($cmd);
             if ($?) {
                 $log->warn("Rsync failed, please check: $?");
