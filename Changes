@@ -1,5 +1,13 @@
 Revision history for Git-Bunch
 
+0.15    2011-08-03
+
+        No functional changes. Add temporary dependencies to
+        Sub::Spec::GetArgs::Array 0.02 so that string arg_greedy arg works (e.g.
+        "gitbunch exec ~/repos -- ls -l -d" instead of "gitbunch exec ~/repos
+        'ls -l -d'".
+
+
 0.14    2011-07-07
 
         [INCOMPATIBLE CHANGES]
