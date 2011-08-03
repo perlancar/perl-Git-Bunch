@@ -526,6 +526,7 @@ _
             summary      => 'Command to execute',
             default      => 0,
             arg_pos      => 1,
+            arg_greedy   => 1,
         }],
     },
     cmdline_suppress_output => 1,
