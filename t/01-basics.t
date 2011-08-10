@@ -413,8 +413,9 @@ sub create_test_data {
     write_file "src/bunch1/repo1/k", "kangkung";
     $CWD     = "src/bunch1/repo1";
     system     "git init";
-    system     'git config user.name nobody';
-    system     'git config user.email nobody@example.org';
+    # doesn't matter, what's needed is config --global?
+    #system     'git config user.name nobody';
+    #system     'git config user.email nobody@example.org';
     system     "git add .";
     system     "git commit -am 'commit1-repo1'";
     $CWD     = "../../..";
