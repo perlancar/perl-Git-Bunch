@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.16    2011-09-16
+
+        [INCOMPATIBLE CHANGES]
+
+        * backup: Change default check from 1 to 0, to make backup more robust (I often forgot to
+
+
 0.15    2011-08-03
 
         No functional changes. Add temporary dependencies to
