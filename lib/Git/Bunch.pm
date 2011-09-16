@@ -591,7 +591,7 @@ _
         check            => ['bool'   => {
             summary      =>
                 'Whether to check bunch first before doing backup',
-            default      => 1,
+            default      => 0,
         }],
         backup           => ['bool'   => {
             summary      => 'Whether to do actual backup/rsync',
@@ -651,7 +651,7 @@ sub backup_bunch {
     return $res unless $res->[0] == 200;
     my $source    = $args{source};
     my $target    = $args{target};
-    my $check     = $args{check}  // 1;
+    my $check     = $args{check}  // 0;
     my $backup    = $args{backup} // 1;
     my $index     = $args{index}  // 1;
     my $delete_excluded = $args{delete_excluded};
