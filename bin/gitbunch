@@ -16,6 +16,8 @@ BEGIN {
     }
 }
 
+# VERSION
+
 use Sub::Spec::CmdLine qw(run);
 run(
     module => 'Git::Bunch',

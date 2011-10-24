@@ -1,5 +1,4 @@
 package Git::Bunch;
-# ABSTRACT: Manage gitbunch directory (directory which contain git repos)
 
 use 5.010;
 use strict;
@@ -15,12 +14,19 @@ require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT_OK = qw(check_bunch sync_bunch backup_bunch exec_bunch);
 
+# VERSION
+
 our %SPEC;
 
 our %common_args_spec = (
     source           => ['str*'   => {
         summary      => 'Directory to check',
         arg_pos      => 0,
+    }],
+    sort             => ['str'   => {
+        summary      => 'Order entries in bunch',
+        in           => [qw/name -name mtime -mtime rand/],
+        default      => '-mtime',
     }],
     include_repos    => ['array'   => {
         of           => 'str*',
@@ -105,7 +111,23 @@ sub _check_common_args {
         return $res unless $res->[0] == 200;
     }
 
-    [200, "OK"];
+    # XXX rand is not proper shuffle
+    my $sort = $args->{sort};
+    my $sortsub;
+    if (!$sort) {
+        $sortsub = sub { 1 };
+    } elsif ($sort eq '-mtime') {
+        $sortsub = sub {((-M $a)//0) <=> ((-M $b)//0)};
+    } elsif ($sort eq 'mtime') {
+        $sortsub = sub {((-M $b)//0) <=> ((-M $a)//0)};
+    } elsif ($sort eq '-name') {
+        $sortsub = sub {$b cmp $a};
+    } elsif ($sort eq 'name') {
+        $sortsub = sub {$a cmp $b};
+    } else { # rand
+        $sortsub = sub {int(3*rand())-1};
+    }
+    [200, "OK", undef, {sortsub=>$sortsub}];
 }
 
 # return true if entry should be skipped
@@ -198,6 +220,7 @@ sub check_bunch {
     # XXX schema
     $res = _check_common_args(\%args);
     return $res unless $res->[0] == 200;
+    my $sortsub = $res->[3]{sortsub};
     my $source = $args{source};
 
     $log->info("Checking bunch $source ...");
@@ -207,7 +230,7 @@ sub check_bunch {
     local $CWD = $source;
     my $i = 0;
   REPO:
-    for my $repo (sort grep {-d} <*>) {
+    for my $repo (sort $sortsub grep {-d} <*>) {
         $CWD = $i++ ? "../$repo" : $repo;
         next REPO if _skip_process_repo($repo, \%args, ".");
 
@@ -448,6 +471,7 @@ sub sync_bunch {
     # XXX schema
     $res = _check_common_args(\%args, 1);
     return $res unless $res->[0] == 200;
+    my $sortsub = $res->[3]{sortsub};
     my $delete_branch = $args{delete_branch} // 0;
     my $source = $args{source};
     my $target = $args{target};
@@ -464,13 +488,13 @@ sub sync_bunch {
     my $a = $args{rsync_opt_maintain_ownership} ? "aH" : "rlptDH";
 
     my @entries;
-    opendir my($d), $source; @entries = readdir($d);
+    opendir my($d), $source; @entries = sort $sortsub readdir($d);
 
     $source = Cwd::abs_path($source);
     local $CWD = $target;
     my %res;
   ENTRY:
-    for my $e (sort @entries) {
+    for my $e (sort $sortsub @entries) {
         next ENTRY if _skip_process_entry($e, \%args, "$source/$e");
         my $is_repo = (-d "$source/$e") && (-d "$source/$e/.git");
         if (!$is_repo) {
@@ -538,6 +562,7 @@ sub exec_bunch {
     # XXX schema
     $res = _check_common_args(\%args);
     return $res unless $res->[0] == 200;
+    my $sortsub = $res->[3]{sortsub};
     my $source  = $args{source};
     my $command = $args{command};
     defined($command) or return [400, "Please specify command"];
@@ -546,7 +571,7 @@ sub exec_bunch {
     my %res;
     my $i = 0;
   REPO:
-    for my $repo (grep {-d} <*>) {
+    for my $repo (sort $sortsub grep {-d} <*>) {
         $CWD = $i++ ? "../$repo" : $repo;
         next REPO if _skip_process_repo($repo, \%args, ".");
         $log->info("Executing command on $repo ...");
@@ -753,7 +778,7 @@ sub backup_bunch {
 }
 
 1;
-__END__
+# ABSTRACT: Manage gitbunch directory (directory which contain git repos)
 
 =head1 SYNOPSIS
 
