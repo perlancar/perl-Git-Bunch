@@ -4,7 +4,9 @@ Revision history for Git-Bunch
 
         [INCOMPATIBLE CHANGES]
 
-        * backup: Change default check from 1 to 0, to make backup more robust (I often forgot to
+        * backup: Change default check from 1 to 0, to make backup more robust
+          (I often forgot to add --nocheck while having some repos uncommitted,
+          resulting in failure of backup).
 
 
 0.15    2011-08-03
