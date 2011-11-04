@@ -112,7 +112,7 @@ sub _check_common_args {
     }
 
     # XXX rand is not proper shuffle
-    my $sort = $args->{sort};
+    my $sort = $args->{sort} // "-mtime";
     my $sortsub;
     if (!$sort) {
         $sortsub = sub { 1 };
