@@ -6,38 +6,27 @@ package gitbunch;
 use 5.010;
 use strict;
 use warnings;
-BEGIN {
-    # reduce startup overhead if being invoked for bash completion
-    unless ($ENV{COMP_LINE}) {
-        no warnings; $::LOG_LEVEL = 'info';
-        require Log::Any::App;
-        # older Log::Any::App (< 0.26) which croaks when import() is not called
-        Log::Any::App->import();
-    }
-}
 
 # VERSION
 
-use Sub::Spec::CmdLine qw(run);
-run(
-    module => 'Git::Bunch',
+use Perinci::CmdLine;
+Perinci::CmdLine->new(
+    url => '/Git/Bunch/',
     subcommands => {
-        check  => { sub => 'check_bunch'  },
-        sync   => { sub => 'sync_bunch'   },
-        backup => { sub => 'backup_bunch' },
-        exec   => { sub => 'exec_bunch'   },
+        check  => { url => '/Git/Bunch/check_bunch'  },
+        sync   => { url => '/Git/Bunch/sync_bunch'   },
+        backup => { url => '/Git/Bunch/backup_bunch' },
+        exec   => { url => '/Git/Bunch/exec_bunch'   },
     }
-);
+)->run;
 
-__END__
-
-=head1 NAME
-
-gitbunch - Manage gitbunch directory (directory which contain git repos)
+1;
+# ABSTRACT: Manage gitbunch directory (directory which contain git repos)
 
 =head1 DESCRIPTION
 
 See L<Git::Bunch> for more documentation.
+
 
 =head1 FAQ
 

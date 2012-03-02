@@ -206,7 +206,7 @@ _
     args          => {
         %common_args_spec,
     },
-    cmdline_suppress_output => 1,
+    "_cmdline.suppress_output_on_success" => 1,
     deps => {
         all => [
             {exec => 'git'},
@@ -456,7 +456,7 @@ _
             default      => 0,
         }],
     },
-    cmdline_suppress_output => 1,
+    "_cmdline.suppress_output_on_success" => 1,
     deps => {
         all => [
             {exec => 'git'},
@@ -553,7 +553,7 @@ _
             arg_greedy   => 1,
         }],
     },
-    cmdline_suppress_output => 1,
+    "_cmdline.suppress_output_on_success" => 1,
 };
 sub exec_bunch {
     my %args = @_;
