@@ -1,5 +1,11 @@
 Revision history for Git-Bunch
 
+0.18    2012-03-03
+
+        Add 'cmdline.result_importance' => 'low' to result metadata, to suppress
+        verbose output.
+
+
 0.17    2012-03-02
 
         No functional changes. Replace Sub::Spec::CmdLine with Perinci::CmdLine.
