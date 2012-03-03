@@ -592,7 +592,7 @@ sub exec_bunch {
 
     [200,
      "OK",
-     \%res
+     \%res,
      {"cmdline.result_importance" => "low"}];
 }
 
