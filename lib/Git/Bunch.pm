@@ -378,7 +378,10 @@ sub _sync_repo {
             $log->error("Can't successfully git pull branch $branch: $1");
             return [500, "git pull branch $branch failed: $1"];
         } elsif ($exit == 0 &&
-                     $output =~ /^Updating |^Merge made by recursive/m) {
+                     $output =~ /^Updating \s|
+                                 ^Merge \s made \s by \s recursive|
+                                 ^Merge \s made \s by \s the \s 'recursive'|
+                                /mx) {
             $log->warn("Branch $branch of repo $repo updated")
                 if @src_branches > 1;
             $log->warn("Repo $repo updated")
