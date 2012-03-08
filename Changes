@@ -1,5 +1,10 @@
 Revision history for Git-Bunch
 
+0.19    2012-03-08
+
+        Small update to regex. Update to Perinci::CmdLine 0.40.
+
+
 0.18    2012-03-03
 
         Add 'cmdline.result_importance' => 'low' to result metadata, to suppress
