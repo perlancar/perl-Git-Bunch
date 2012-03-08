@@ -270,7 +270,7 @@ sub check_bunch {
     [200,
      $has_unclean ? "Some repos unclean" : "All repos clean",
      \%res,
-     {"cmdline.result_importance" => "low"}];
+     {"cmdline.display_result" => 0}];
 }
 
 sub _mysystem {
@@ -540,7 +540,7 @@ sub sync_bunch {
     [200,
      "OK",
      \%res,
-     {"cmdline.result_importance" => "low"}];
+     {"cmdline.display_result" => 0}];
 }
 
 $SPEC{exec_bunch} = {
@@ -596,7 +596,7 @@ sub exec_bunch {
     [200,
      "OK",
      \%res,
-     {"cmdline.result_importance" => "low"}];
+     {"cmdline.display_result" => 0}];
 }
 
 $SPEC{backup_bunch} = {
