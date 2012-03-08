@@ -18,6 +18,11 @@ our @EXPORT_OK = qw(check_bunch sync_bunch backup_bunch exec_bunch);
 
 our %SPEC;
 
+$SPEC{":package"} = {
+    v => 1.1,
+    summary => 'Manage gitbunch directory (directory which contain git repos)',
+};
+
 our %common_args_spec = (
     source           => ['str*'   => {
         summary      => 'Directory to check',
