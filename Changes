@@ -1,5 +1,10 @@
 Revision history for Git-Bunch
 
+0.20    2012-04-10
+
+        No functional change. Small update to metadata.
+
+
 0.19    2012-03-08
 
         Small update to regex. Update to Perinci::CmdLine 0.40.
