@@ -662,9 +662,11 @@ _
         }],
     },
 
-    cmdline_examples => [
+    # this is already metadata v1.1
+    _examples => [
         {
-            cmd         => '/home/steven/repos /backup/steven/repos --nocheck',
+            argv        => [qw(/home/steven/repos /backup/steven/repos
+                               --nocheck)],
             description => <<'_',
 
 Backup /home/steven/repos to /backup/steven/repos. All git projects inside
