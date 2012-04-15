@@ -1,5 +1,10 @@
 Revision history for Git-Bunch
 
+0.21    2012-04-16
+
+        Check: detect repo needs merging.
+
+
 0.20    2012-04-10
 
         No functional change. Small update to metadata.
