@@ -263,6 +263,9 @@ sub check_bunch {
                                  )/x) {
             $log->warn("$repo has untracked files");
             $res{$repo} = [500, "Has untracked files"];
+        } elsif ($exit == 0 && $output =~ /Unmerged paths:/) {
+            $log->warn("$repo needs merging");
+            $res{$repo} = [500, "Needs merging"];
         } elsif ($exit == 128 && $output =~ /Not a git repository/) {
             $log->warn("$repo is not a git repo (2)");
             $res{$repo} = [500, "Not a git repo (2)"];
