@@ -213,7 +213,7 @@ _
     },
     deps => {
         all => [
-            {exec => 'git'},
+            {prog => 'git'},
         ],
     },
 };
@@ -472,8 +472,8 @@ _
     "_cmdline.suppress_output_on_success" => 1,
     deps => {
         all => [
-            {exec => 'git'},
-            {exec => 'rsync'},
+            {prog => 'git'},
+            {prog => 'rsync'},
         ],
     },
 };
@@ -681,9 +681,9 @@ _
     ],
     deps => {
         all => [
-            {exec => 'ls'},
-            {exec => 'gzip'},
-            {exec => 'rsync'},
+            {prog => 'ls'},
+            {prog => 'gzip'},
+            {prog => 'rsync'},
         ],
     },
 };
