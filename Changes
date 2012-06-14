@@ -1,32 +1,32 @@
 Revision history for Git-Bunch
 
-0.21    2012-04-16
+0.21    2012-04-16 (SHARYANTO)
 
         Check: detect repo needs merging.
 
 
-0.20    2012-04-10
+0.20    2012-04-10 (SHARYANTO)
 
         No functional change. Small update to metadata.
 
 
-0.19    2012-03-08
+0.19    2012-03-08 (SHARYANTO)
 
         Small update to regex. Update to Perinci::CmdLine 0.40.
 
 
-0.18    2012-03-03
+0.18    2012-03-03 (SHARYANTO)
 
         Add 'cmdline.result_importance' => 'low' to result metadata, to suppress
         verbose output.
 
 
-0.17    2012-03-02
+0.17    2012-03-02 (SHARYANTO)
 
         No functional changes. Replace Sub::Spec::CmdLine with Perinci::CmdLine.
 
 
-0.16    2011-09-16
+0.16    2011-09-16 (SHARYANTO)
 
         [INCOMPATIBLE CHANGES]
 
@@ -35,7 +35,7 @@ Revision history for Git-Bunch
           resulting in failure of backup).
 
 
-0.15    2011-08-03
+0.15    2011-08-03 (SHARYANTO)
 
         No functional changes. Add temporary dependencies to
         Sub::Spec::GetArgs::Array 0.02 so that string arg_greedy arg works (e.g.
@@ -43,7 +43,7 @@ Revision history for Git-Bunch
         'ls -l -d'".
 
 
-0.14    2011-07-07
+0.14    2011-07-07 (SHARYANTO)
 
         [INCOMPATIBLE CHANGES]
 
@@ -53,7 +53,7 @@ Revision history for Git-Bunch
           setting rsync_opt_maintain_ownership to 1.
 
 
-0.13    2011-06-08
+0.13    2011-06-08 (SHARYANTO)
 
         [ENHANCEMENTS]
 
@@ -64,7 +64,7 @@ Revision history for Git-Bunch
         * backup_bunch: Do not index excluded items.
 
 
-0.12    2011-06-04
+0.12    2011-06-04 (SHARYANTO)
 
         No functional changes.
 
@@ -73,7 +73,7 @@ Revision history for Git-Bunch
         * Fix spec for exec_bunch().
 
 
-0.11    2011-06-04
+0.11    2011-06-04 (SHARYANTO)
 
         No functional changes.
 
@@ -82,7 +82,7 @@ Revision history for Git-Bunch
         * Fix spec for exec_bunch().
 
 
-0.10    2011-06-04
+0.10    2011-06-04 (SHARYANTO)
 
         [NEW FEATURES]
 
@@ -95,17 +95,17 @@ Revision history for Git-Bunch
         * Exclude/include repos options added to all functions.
 
 
-0.09    2011-04-19
+0.09    2011-04-19 (SHARYANTO)
 
         Add --exclude_repos to sync_bunch.
 
 
-0.08    2011-03-04
+0.08    2011-03-04 (SHARYANTO)
 
         Fix test when run as root.
 
 
-0.07    2011-03-04
+0.07    2011-03-04 (SHARYANTO)
 
         Sort repos in sorted order.
 
@@ -114,7 +114,7 @@ Revision history for Git-Bunch
         Fix test (git co -> git checkout).
 
 
-0.06    2011-02-28
+0.06    2011-02-28 (SHARYANTO)
 
         Update to the latest Sub::Spec: 'depends' clause -> 'deps'. Add a few
         dependency clauses (e.g. to 'git' and 'rsync' binary).
@@ -125,27 +125,27 @@ Revision history for Git-Bunch
         Add tests.
 
 
-0.05    2011-02-22
+0.05    2011-02-22 (SHARYANTO)
 
         Update to the latest Sub::Spec (%SUBS -> %SPEC).
 
 
-0.04    2011-02-16
+0.04    2011-02-16 (SHARYANTO)
 
         Reduce startup overhead (avoid loading Log::Any::App) when invoked for
         bash completion.
 
 
-0.03    2011-02-16
+0.03    2011-02-16 (SHARYANTO)
 
         Add missing dependency (File::chdir). [CT]
 
 
-0.02    2011-02-15
+0.02    2011-02-15 (SHARYANTO)
 
         Change log levels.
 
 
-0.01    2011-02-15
+0.01    2011-02-15 (SHARYANTO)
 
         First release.
