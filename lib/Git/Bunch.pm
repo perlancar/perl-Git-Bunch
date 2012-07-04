@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use Log::Any '$log';
 
+use Builtin::Logged qw(system my_qx);
 use Cwd ();
 use File::chdir;
 use File::Path qw(make_path);
@@ -291,17 +292,6 @@ sub check_bunch {
      {"cmdline.display_result" => 0}];
 }
 
-sub _mysystem {
-    $log->tracef("system(): cwd=%s, cmd=%s", $CWD, join(" ", @_));
-    system @_;
-}
-
-sub _myqx {
-    my $cmd = shift;
-    $log->trace("qx(): $cmd");
-    `$cmd`
-}
-
 sub _sync_repo {
     my ($src, $dest, $repo, $opts) = @_;
     my $exit;
@@ -312,7 +302,7 @@ sub _sync_repo {
     my %dest_heads; # last revisions for each branch
 
     local $CWD = "$src/$repo";
-    @src_branches = map {(/^[* ] (.+)/, $1)[-1]} _myqx("LANG=C git branch");
+    @src_branches = map {(/^[* ] (.+)/, $1)[-1]} my_qx("LANG=C git branch");
     $exit = $? & 255;
     if ($exit) {
         $log->error("Can't list branches on src repo $src/$repo: $?");
@@ -321,7 +311,7 @@ sub _sync_repo {
     $log->debugf("Source branches: %s", \@src_branches);
 
     for my $branch (@src_branches) {
-        my $output = _myqx("LANG=C git log -1 '$branch'");
+        my $output = my_qx("LANG=C git log -1 '$branch'");
         $exit = $? & 255;
         if ($exit) {
             $log->error("Can't find out head for branch $branch on src repo ".
@@ -339,14 +329,14 @@ sub _sync_repo {
 
     $CWD = "$dest/$repo";
     my $is_bare = _is_repo(".") == 2;
-    @dest_branches = map {(/^[* ] (.+)/, $1)[-1]} _myqx("LANG=C git branch");
+    @dest_branches = map {(/^[* ] (.+)/, $1)[-1]} my_qx("LANG=C git branch");
     if ($exit) {
         $log->error("Can't list branches on dest repo $repo: $?");
         return [500, "Can't list branches on dest: $?"];
     }
     $log->debugf("Dest branches: %s", \@dest_branches);
     for my $branch (@dest_branches) {
-        my $output = _myqx("LANG=C git log -1 '$branch'");
+        my $output = my_qx("LANG=C git log -1 '$branch'");
         $exit = $? & 255;
         if ($exit) {
             $log->error("Can't find out head for branch $branch on dest repo ".
@@ -383,13 +373,13 @@ sub _sync_repo {
         $log->info("Updating branch $branch of repo $repo ...")
             if @src_branches > 1;
         if ($is_bare) {
-            $output = _myqx(
+            $output = my_qx(
                 join("",
                      "cd '$src/$repo'; ",
                      "LANG=C git push '$dest/$repo' '$branch' 2>&1",
                  ));
         } else {
-            $output = _myqx(
+            $output = my_qx(
                 join("",
                      "cd '$dest/$repo'; ",
                      ($branch ~~ @dest_branches ? "":"git branch '$branch'; "),
@@ -421,7 +411,7 @@ sub _sync_repo {
         $log->debug("Result of 'git pull/push' for branch $branch of repo ".
                         "$repo: exit=$exit, output=$output");
 
-        $output = _myqx("cd '$dest/$repo'; ".
+        $output = my_qx("cd '$dest/$repo'; ".
                             "LANG=C git fetch --tags '$src/$repo' 2>&1");
         $exit = $? & 255;
         if ($exit != 0) {
@@ -438,8 +428,8 @@ sub _sync_repo {
             $changed_branch++;
             $log->info("Deleting branch $branch of repo $repo because ".
                            "it no longer exists in src ...");
-            _mysystem("cd '$dest/$repo' && git checkout master 2>/dev/null && ".
-                          "git branch -D '$branch' 2>/dev/null");
+            system("cd '$dest/$repo' && git checkout master 2>/dev/null && ".
+                       "git branch -D '$branch' 2>/dev/null");
             if (($? & 255) != 0) {
                 $log->error("Failed deleting branch $branch of repo $repo: $?");
             }
@@ -546,7 +536,7 @@ sub sync_bunch {
         if (!$is_repo) {
             $log->info("Sync-ing non-git file/directory $e ...");
             $cmd = "rsync -${a}z --del --force ".shell_quote("$source/$e")." .";
-            _mysystem($cmd);
+            system($cmd);
             if ($?) {
                 $log->warn("Rsync failed, please check: $?");
                 $res{$e} = [500, "rsync failed: $?"];
@@ -561,7 +551,7 @@ sub sync_bunch {
                 $log->info("Initializing target repo $e ...");
                 $cmd = "mkdir ".shell_quote($e)." && cd ".shell_quote($e).
                     " && git init --bare";
-                _mysystem($cmd);
+                system($cmd);
                 if ($?) {
                     $log->warn("Git init failed, please check: $?");
                     $res{$e} = [500, "git init failed: $?"];
@@ -571,7 +561,7 @@ sub sync_bunch {
             } else {
                 $log->info("Copying repo $e ...");
                 $cmd = "rsync -${a}z ".shell_quote("$source/$e")." .";
-                _mysystem($cmd);
+                system($cmd);
                 if ($?) {
                     $log->warn("Rsync failed, please check: $?");
                     $res{$e} = [500, "rsync failed: $?"];
@@ -637,7 +627,7 @@ sub exec_bunch {
         $CWD = $i++ ? "../$repo" : $repo;
         next REPO if _skip_process_repo($repo, \%args, ".");
         $log->info("Executing command on $repo ...");
-        _mysystem($command);
+        system($command);
         if ($?) {
             $log->warn("Command failed: $?");
             $res{$repo} = [500, "Command failed: $?"];
@@ -819,7 +809,7 @@ sub backup_bunch {
             shell_quote($source), "/ ",
             shell_quote($target), "/"
         );
-        _mysystem($cmd);
+        system($cmd);
         return [500, "Backup did not succeed, please check: $?"] if $?;
     }
 
@@ -835,12 +825,12 @@ sub backup_bunch {
                          @files, @nongit_dirs, @included_repos),
                 " | gzip -c > .ls-laR.gz"
             );
-            _mysystem($cmd);
+            system($cmd);
             return [500, "Indexing did not succeed, please check: $?"] if $?;
         }
         my $cmd = "rsync ".shell_quote("$source/.ls-laR.gz")." ".
             shell_quote("$target/");
-        _mysystem($cmd);
+        system($cmd);
         return [500, "Copying index did not succeed, please check: $?"] if $?;
     }
 
