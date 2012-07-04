@@ -13,6 +13,7 @@ use Git::Bunch qw(check_bunch sync_bunch backup_bunch);
 use Probe::Perl;
 use String::ShellQuote;
 
+# XXX sync + --use_bare
 # XXX --exclude_repos_pat
 # XXX --include_repos_pat
 # XXX backup: --delete_excluded
