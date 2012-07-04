@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.22    2012-07-04 (SHARYANTO)
+
+        - Add `use_bare` option.
+
+        - Declare `backup_bunch` deprecated.
+
+
 0.21    2012-04-16 (SHARYANTO)
 
         Check: detect repo needs merging.
