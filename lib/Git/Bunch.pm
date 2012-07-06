@@ -913,7 +913,8 @@ Git::Bunch. On the other hand, Git::Bunch is simpler (I think), doesn't require
 any config file, and can copy/sync files/directories not under source control. I
 mainly use Git::Bunch to quickly: 1) check whether there are any of my
 repositories which have uncommitted changes; 2) synchronize (pull/push) to other
-locations.
+locations. I put all my data in one big gitbunch directory; I find it simpler.
+Git::Bunch works for me and I use it daily.
 
 =cut
 
