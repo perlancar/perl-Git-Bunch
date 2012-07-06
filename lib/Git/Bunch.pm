@@ -905,5 +905,14 @@ None of the functions are exported by default, but they are exportable.
 
 =head1 SEE ALSO
 
+B<mr>, http://joeyh.name/code/mr/ . You probably want to use this instead. mr
+supports other control version software aside from git, doesn't restrict you to
+put all your repos in one directory, supports more operations, and has been
+developed since 2007. Had I known about mr, I probably wouldn't have started
+Git::Bunch. On the other hand, Git::Bunch is simpler (I think), doesn't require
+any config file. I mainly use Git::Bunch to quickly: 1) check whether there are
+any of my repositories which have uncommitted changes; 2) synchronize
+(pull/push) to other locations.
+
 =cut
 
