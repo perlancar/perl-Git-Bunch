@@ -1,5 +1,20 @@
 Revision history for Git-Bunch
 
+0.23    2012-07-24 (SHARYANTO)
+
+        [BUG FIXES]
+
+        - Fix getting exit code from $?.
+
+        [DOCUMENTATION]
+
+        - Mention use cases for gitbunch, why/how I use it.
+
+        - Mention that gitbunch can handle non-repo dirs/files.
+
+        - Mention mr.
+
+
 0.22    2012-07-04 (SHARYANTO)
 
         - Add `use_bare` option.
