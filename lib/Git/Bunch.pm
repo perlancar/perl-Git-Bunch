@@ -511,6 +511,7 @@ sub sync_bunch {
     my $source = $args{source};
     my $target = $args{target};
     my $use_bare = $args{use_bare} // 0;
+    my $exit;
 
     my $cmd;
 
@@ -618,6 +619,7 @@ _
 sub exec_bunch {
     my %args = @_;
     my $res;
+    my $exit;
 
     # XXX schema
     $res = _check_common_args(\%args);
@@ -739,6 +741,7 @@ sub backup_bunch {
     my %args = @_;
 
     my $res;
+    my $exit;
 
     # XXX schema
     $res = _check_common_args(\%args);
