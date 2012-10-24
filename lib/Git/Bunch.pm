@@ -9,7 +9,6 @@ use Builtin::Logged qw(system my_qx);
 use Cwd ();
 use File::chdir;
 use File::Path qw(make_path);
-use Progress::Any '$progress';
 use String::ShellQuote;
 
 require Exporter;
@@ -499,10 +498,13 @@ _
             {prog => 'rsync'},
         ],
     },
+    features => {progress=>1},
 };
 sub sync_bunch {
     my %args = @_;
     my $res;
+
+    my $progress = $args{-progress};
 
     # XXX schema
     $res = _check_common_args(\%args, 1);

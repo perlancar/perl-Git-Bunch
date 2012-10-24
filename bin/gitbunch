@@ -6,14 +6,6 @@ use warnings;
 
 # VERSION
 
-use Progress::Any;
-use Progress::Any::Output::TermProgressBar;
-
-Progress::Any->set_output(
-    output => Progress::Any::Output::TermProgressBar->new(
-    ),
-);
-
 use Perinci::CmdLine;
 Perinci::CmdLine->new(
     url => '/Git/Bunch/',
