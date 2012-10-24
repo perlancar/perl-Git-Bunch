@@ -9,6 +9,7 @@ use Builtin::Logged qw(system my_qx);
 use Cwd ();
 use File::chdir;
 use File::Path qw(make_path);
+use Progress::Any '$progress';
 use String::ShellQuote;
 
 require Exporter;
@@ -531,14 +532,17 @@ sub sync_bunch {
     local $CWD = $target;
     my %res;
     my $i = 0;
+    $progress->reset;
+    $progress->set_target(target => ~~@entries);
   ENTRY:
     for my $e (sort $sortsub @entries) {
         ++$i;
         next ENTRY if _skip_process_entry($e, \%args, "$source/$e");
         my $is_repo = _is_repo("$source/$e");
         if (!$is_repo) {
-            $log->infof("(%d/%d) Sync-ing non-git file/directory %s ...",
-                    $i, @entries+0, $e);
+            $progress->update(pos => $i,
+                              message =>
+                                  "Sync-ing non-git file/directory $e ...");
             $cmd = "rsync -${a}z --del --force ".shell_quote("$source/$e")." .";
             system($cmd);
             $exit = $? >> 8;
@@ -565,8 +569,9 @@ sub sync_bunch {
                 }
                 # continue to sync-ing
             } else {
-                $log->infof("(%d/%d) Copying repo %s ...",
-                        $i, @entries+0, $e);
+                $progress->update(pos => $i,
+                                  message =>
+                                      "Copying repo $e ...");
                 $cmd = "rsync -${a}z ".shell_quote("$source/$e")." .";
                 system($cmd);
                 $exit = $? >> 8;
@@ -581,14 +586,14 @@ sub sync_bunch {
             }
         }
 
-        $log->infof("(%d/%d) Sync-ing repo %s ...",
-                $i, @entries+0, $e);
+        $progress->update(pos => $i, message => "Sync-ing repo $e ...");
         my $res = _sync_repo(
             $source, $target, $e,
             {delete_branch => $delete_branch},
         );
         $res{$e} = $res;
     }
+    $progress->finish;
 
     [200,
      "OK",
