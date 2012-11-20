@@ -252,8 +252,8 @@ sub check_bunch {
     my @entries = sort $sortsub grep {-d} <*>;
 
     my $i = 0;
-    $progress->reset;
-    $progress->set_target(target => ~~@entries);
+    $progress->reset if $progress;
+    $progress->set_target(target => ~~@entries) if $progress;
   REPO:
     for my $repo (@entries) {
         $CWD = $i++ ? "../$repo" : $repo;
@@ -261,7 +261,8 @@ sub check_bunch {
 
         $progress->update(pos => $i,
                           message =>
-                              "Checking repo $repo ...");
+                              "Checking repo $repo ...")
+            if $progress;
 
         my $output = `LANG=C git status 2>&1`;
         my $exit = $? >> 8;
@@ -298,7 +299,7 @@ sub check_bunch {
             $res{$repo} = [500, "Unknown (exit=$exit, output=$output)"];
         }
     }
-    $progress->finish;
+    $progress->finish if $progress;
     [200,
      $has_unclean ? "Some repos unclean" : "All repos clean",
      \%res,
@@ -549,8 +550,8 @@ sub sync_bunch {
     local $CWD = $target;
     my %res;
     my $i = 0;
-    $progress->reset;
-    $progress->set_target(target => ~~@entries);
+    $progress->reset if $progress;
+    $progress->set_target(target => ~~@entries) if $progress;
   ENTRY:
     for my $e (@entries) {
         ++$i;
@@ -559,7 +560,8 @@ sub sync_bunch {
         if (!$is_repo) {
             $progress->update(pos => $i,
                               message =>
-                                  "Sync-ing non-git file/directory $e ...");
+                                  "Sync-ing non-git file/directory $e ...")
+                 if $progress;
             $cmd = "rsync -${a}z --del --force ".shell_quote("$source/$e")." .";
             system($cmd);
             $exit = $? >> 8;
@@ -588,7 +590,8 @@ sub sync_bunch {
             } else {
                 $progress->update(pos => $i,
                                   message =>
-                                      "Copying repo $e ...");
+                                      "Copying repo $e ...")
+                     if $progress;
                 $cmd = "rsync -${a}z ".shell_quote("$source/$e")." .";
                 system($cmd);
                 $exit = $? >> 8;
@@ -603,14 +606,15 @@ sub sync_bunch {
             }
         }
 
-        $progress->update(pos => $i, message => "Sync-ing repo $e ...");
+        $progress->update(pos => $i, message => "Sync-ing repo $e ...")
+             if $progress;
         my $res = _sync_repo(
             $source, $target, $e,
             {delete_branch => $delete_branch},
         );
         $res{$e} = $res;
     }
-    $progress->finish;
+    $progress->finish if $progress;
 
     [200,
      "OK",
