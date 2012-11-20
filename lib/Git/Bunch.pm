@@ -227,10 +227,15 @@ _
             {prog => 'git'},
         ],
     },
+    features => {
+        progress => 1,
+    },
 };
 sub check_bunch {
     my %args = @_;
     my $res;
+
+    my $progress = $args{-progress};
 
     # XXX schema
     $res = _check_common_args(\%args);
@@ -243,13 +248,20 @@ sub check_bunch {
     my $has_unclean;
     my %res;
     local $CWD = $source;
+
+    my @entries = sort $sortsub grep {-d} <*>;
+
     my $i = 0;
+    $progress->reset;
+    $progress->set_target(target => ~~@entries);
   REPO:
-    for my $repo (sort $sortsub grep {-d} <*>) {
+    for my $repo (@entries) {
         $CWD = $i++ ? "../$repo" : $repo;
         next REPO if _skip_process_repo($repo, \%args, ".");
 
-        $log->debug("Checking repo $repo ...");
+        $progress->update(pos => $i,
+                          message =>
+                              "Checking repo $repo ...");
 
         my $output = `LANG=C git status 2>&1`;
         my $exit = $? >> 8;
@@ -286,6 +298,7 @@ sub check_bunch {
             $res{$repo} = [500, "Unknown (exit=$exit, output=$output)"];
         }
     }
+    $progress->finish;
     [200,
      $has_unclean ? "Some repos unclean" : "All repos clean",
      \%res,
@@ -498,7 +511,9 @@ _
             {prog => 'rsync'},
         ],
     },
-    features => {progress=>1},
+    features => {
+        progress => 1,
+    },
 };
 sub sync_bunch {
     my %args = @_;
@@ -537,7 +552,7 @@ sub sync_bunch {
     $progress->reset;
     $progress->set_target(target => ~~@entries);
   ENTRY:
-    for my $e (sort $sortsub @entries) {
+    for my $e (@entries) {
         ++$i;
         next ENTRY if _skip_process_entry($e, \%args, "$source/$e");
         my $is_repo = _is_repo("$source/$e");
