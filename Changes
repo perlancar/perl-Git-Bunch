@@ -1,5 +1,10 @@
 Revision history for Git-Bunch
 
+0.26    2012-12-20 (SHARYANTO)
+
+        No functional changes. Tweak error message.
+
+
 0.25    2012-11-20 (SHARYANTO)
 
         No functional changes. Use progress indicator for 'sync_bunch'.
