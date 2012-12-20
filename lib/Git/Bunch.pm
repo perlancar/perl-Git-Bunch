@@ -406,7 +406,8 @@ sub _sync_repo {
             $log->debug("Branch $branch of repo $repo is up to date");
             next BRANCH;
         } elsif ($output =~ /^error: (.+)/m) {
-            $log->error("Can't successfully git pull/push branch $branch: $1");
+            $log->error("Can't successfully git pull/push branch $branch of ".
+                            "repo $repo: $1");
             return [500, "git pull/push branch $branch failed: $1"];
         } elsif ($exit == 0 &&
                      $output =~ /^Updating \s|
@@ -418,8 +419,9 @@ sub _sync_repo {
             $log->warn("Repo $repo updated")
                 if @src_branches == 1;
         } else {
-            $log->error("Can't recognize 'git pull/push' output for ".
-                            "branch $branch: exit=$exit, output=$output");
+            $log->error(
+                "Can't recognize 'git pull/push' output for branch ".
+                    "$branch of repo $repo: exit=$exit, output=$output");
             return [500, "Can't recognize git pull/push output: $output"];
         }
         $log->debug("Result of 'git pull/push' for branch $branch of repo ".
