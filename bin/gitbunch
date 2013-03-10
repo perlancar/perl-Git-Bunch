@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 
-use 5.010;
+use 5.010001;
 use strict;
 use warnings;
 
 # VERSION
 
-use Perinci::CmdLine;
+use Perinci::CmdLine 0.68;
 Perinci::CmdLine->new(
     url => '/Git/Bunch/',
     subcommands => {
