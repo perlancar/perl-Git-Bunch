@@ -252,8 +252,8 @@ sub check_bunch {
     my @entries = sort $sortsub grep {-d} <*>;
 
     my $i = 0;
-    $progress->reset if $progress;
-    $progress->set_target(target => ~~@entries) if $progress;
+    $progress->pos(0) if $progress;
+    $progress->target(~~@entries) if $progress;
   REPO:
     for my $repo (@entries) {
         $CWD = $i++ ? "../$repo" : $repo;
