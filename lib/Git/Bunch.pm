@@ -552,8 +552,8 @@ sub sync_bunch {
     local $CWD = $target;
     my %res;
     my $i = 0;
-    $progress->reset if $progress;
-    $progress->set_target(target => ~~@entries) if $progress;
+    $progress->pos(0) if $progress;
+    $progress->target(~~@entries) if $progress;
   ENTRY:
     for my $e (@entries) {
         ++$i;
