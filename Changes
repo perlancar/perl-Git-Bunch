@@ -1,5 +1,11 @@
 Revision history for Git-Bunch
 
+0.27    2013-05-18 (SHARYANTO)
+
+        No functional changes. Update to Perinci::CmdLine 0.79 (Progress::Any
+        0.08).
+
+
 0.26    2012-12-20 (SHARYANTO)
 
         No functional changes. Tweak error message.

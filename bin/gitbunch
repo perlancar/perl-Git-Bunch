@@ -6,7 +6,7 @@ use warnings;
 
 # VERSION
 
-use Perinci::CmdLine 0.68;
+use Perinci::CmdLine;
 Perinci::CmdLine->new(
     url => '/Git/Bunch/',
     subcommands => {
