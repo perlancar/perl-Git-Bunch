@@ -228,7 +228,7 @@ SKIP: {
     );
 
 }
-goto DONE_TESTING;
+
 delete_test_data("bak") if Test::More->builder->is_passing;
 
 test_gb(
