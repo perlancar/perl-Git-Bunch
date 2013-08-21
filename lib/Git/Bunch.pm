@@ -25,32 +25,40 @@ $SPEC{":package"} = {
 };
 
 our %common_args_spec = (
-    source           => ['str*'   => {
+    source           => {
         summary      => 'Directory to check',
-        arg_pos      => 0,
-    }],
-    sort             => ['str'   => {
+        schema       => ['str*'],
+        req          => 1,
+        pos          => 0,
+    },
+    sort             => {
         summary      => 'Order entries in bunch',
-        in           => [qw/name -name mtime -mtime rand/],
-        default      => '-mtime',
-    }],
-    include_repos    => ['array'   => {
-        of           => 'str*',
+        schema       => ['str' => {
+            default => '-mtime',
+            in      => [qw/name -name mtime -mtime rand/],
+        }],
+    },
+    include_repos    => {
         summary      => 'Specific git repos to sync, if not specified '.
             'all repos in the bunch will be processed',
-        arg_aliases  => {
+        schema       => ['array' => {
+            of => 'str*',
+        }],
+        cmdline_aliases => {
             repos => {},
         },
-    }],
-    include_repos_pat=> ['str' => {
+    },
+    include_repos_pat=> {
         summary      => 'Specify regex pattern of repos to include',
-    }],
-    exclude_repos    => [array    => {
-        of           => 'str*',
+        schema       => ['str'],
+    },
+    exclude_repos    => {
         summary      => 'Exclude some repos from processing',
-    }],
-    exclude_non_git_dirs => [bool => {
+        schema       => ['array*' => {of => 'str*'}],
+    },
+    exclude_non_git_dirs => {
         summary      => 'Exclude non-git dirs from processing',
+        schema       => ['bool'],
         description  => <<'_',
 
 This only applies to 'backup_bunch' and 'sync_bunch' operations. Operations like
@@ -58,27 +66,31 @@ This only applies to 'backup_bunch' and 'sync_bunch' operations. Operations like
 repos.
 
 _
-    }],
-    exclude_files    => [bool => {
+    },
+    exclude_files    => {
         summary      => 'Exclude files from processing',
-        description  => <<'_',
+        schema       => ['bool'],
+    description      => <<'_',
 
 This only applies to 'backup_bunch' and 'sync_bunch' operations. Operations like
 'check_bunch' and 'exec_bunch' already ignore these and only operate on git
 repos.
 
 _
-    }],
-    exclude_repos_pat=> ['str' => {
+    },
+    exclude_repos_pat=> {
         summary      => 'Specify regex pattern of repos to exclude',
-    }],
+        schema       => ['str'],
+    },
 );
 
 our %target_arg_spec = (
-    target           => ['str*'   => {
+    target           => {
         summary      => 'Destination bunch',
-        arg_pos      => 1,
-    }],
+        schema       => ['str*'],
+        req          => 1,
+        pos          => 1,
+    },
 );
 
 sub _check_common_args {
@@ -209,6 +221,7 @@ sub _check_bunch_sanity {
 }
 
 $SPEC{check_bunch} = {
+    v             => 1.1,
     summary       =>
         'Check status of git repositories inside gitbunch directory',
     description   => <<'_',
@@ -460,6 +473,7 @@ sub _sync_repo {
 }
 
 $SPEC{sync_bunch} = {
+    v             => 1.1,
     summary       =>
         'Synchronize bunch to another bunch',
     description   => <<'_',
@@ -475,14 +489,15 @@ _
     args          => {
         %common_args_spec,
         %target_arg_spec,
-        delete_branch    => ['bool'   => {
+        delete_branch    => {
             summary      => 'Whether to delete branches in dest repos '.
                 'not existing in source repos',
-            default      => 0,
-        }],
-        rsync_opt_maintain_ownership => ['bool' => {
+            schema       => ['bool' => default => 0],
+        },
+        rsync_opt_maintain_ownership => {
             summary      => 'Whether or not, when rsync-ing from source, '.
                 'we use -a (= -rlptgoD) or -rlptD (-a minus -go)',
+            schema       => ['bool' => default => 0],
             description  => <<'_',
 
 Sometimes using -a results in failure to preserve permission modes on
@@ -491,11 +506,11 @@ ownership. If you need to maintain ownership (e.g. you run as root and the repos
 are not owned by root), turn this option on.
 
 _
-            default      => 0,
-        }],
-        create_bare_target => ['bool' => {
+        },
+        create_bare_target => {
             summary      => 'Whether to create bare git repo '.
                 'when target does not exist',
+            schema       => ['bool'],
             description  => <<'_',
 
 When target repo does not exist, gitbunch can either copy the source repo using
@@ -513,9 +528,8 @@ _
                 # old name, deprecated since v0.29, remove in later releases
                 use_bare => {},
             },
-        }],
+        },
     },
-    "_cmdline.suppress_output_on_success" => 1,
     deps => {
         all => [
             {prog => 'git'},
@@ -645,6 +659,7 @@ sub sync_bunch {
 }
 
 $SPEC{exec_bunch} = {
+    v             => 1.1,
     summary       =>
         'Execute a command for each repo in the bunch',
     description   => <<'_',
@@ -655,14 +670,14 @@ command.
 _
     args          => {
         %common_args_spec,
-        command   => ['str*'   => {
+        command   => {
             summary      => 'Command to execute',
-            default      => 0,
-            arg_pos      => 1,
-            arg_greedy   => 1,
+            schema => ['str*'],
+            req      => 1,
+            pos      => 1,
+            greedy   => 1,
         }],
     },
-    "_cmdline.suppress_output_on_success" => 1,
 };
 sub exec_bunch {
     my %args = @_;
