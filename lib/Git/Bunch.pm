@@ -674,12 +674,12 @@ _
     args          => {
         %common_args_spec,
         command   => {
-            summary      => 'Command to execute',
-            schema => ['str*'],
+            summary  => 'Command to execute',
+            schema   => ['str*'],
             req      => 1,
             pos      => 1,
             greedy   => 1,
-        }],
+        },
     },
 };
 sub exec_bunch {
