@@ -9,14 +9,13 @@ use File::chdir;
 use File::Slurp::Shortcuts qw(slurp_cq write_file);
 use File::Temp qw(tempdir);
 use File::Which;
-use Git::Bunch qw(check_bunch sync_bunch backup_bunch);
+use Git::Bunch qw(check_bunch sync_bunch);
 use Probe::Perl;
 use String::ShellQuote;
 
 # XXX sync + --use_bare
 # XXX --exclude_repos_pat
 # XXX --include_repos_pat
-# XXX backup: --delete_excluded
 # XXX exec
 
 for (qw(git rsync rm)) {
@@ -138,96 +137,6 @@ test_gb(
 #    );
 #    rmdir "src/bunch1/repo3";
 #};
-
-SKIP: {
-    for (qw(ls gzip)) {
-        plan skip_all => "skipping backup_bunch tests because ".
-            "$_ is not available in PATH" unless which($_);
-    }
-
-    test_gb(
-        sub     => "backup_bunch",
-        name    => "source bunch doesn't exist",
-        args    => {source=>"src/bunch1x", target=>"bak"},
-        status  => 404,
-    );
-    test_gb(
-        sub     => "backup_bunch",
-        name    => "using repo instead of bunch in source will be rejected",
-        args    => {source=>"src/bunch1/repo1", target=>"bak"},
-        status  => 400,
-    );
-
-  TODO: {
-        local $TODO = "todo";
-        fail("arg: nocheck");
-    }
-
-    test_gb(
-        sub     => "backup_bunch",
-        name    => "main tests", # also tests handling / suffix in src & target
-        args    => {source=>"src/bunch1/", target=>"bak/1/"},
-        status  => 200,
-        test_res => sub {
-            my ($res) = @_;
-            ok((-d "bak/1"), "target directory created") or return;
-            is(slurp_cq("bak/1/file1"), "foo", "files copied");
-            ok((-d "bak/1/.nonrepo1"), "nongit dotdir copied (exists)");
-            is(slurp_cq("bak/1/.nonrepo1/t"), "tea",
-               "nongit dotdir copied (content)");
-            for my $repo (qw(repo1 repo2)) {
-                ok( (-d "bak/1/$repo"), "repo $repo copied (exists)");
-                ok( (-d "bak/1/$repo/.git"), "repo $repo copied (.git exists)");
-                ok(!(-e "bak/1/$repo/a"),
-                   "repo $repo copied (working copy not copied)");
-                like(`cd bak/1/$repo && git log`, qr/commit1-$repo/i,
-                     "repo $repo copied (git log works)");
-            }
-
-            ok((-f "src/bunch1/.ls-laR.gz"), "index created");
-            ok((-f "bak/1/.ls-laR.gz"), "index copied");
-            my $index = `gzip -cd bak/1/.ls-laR.gz`;
-            ok($index =~ /repo1:$/m, "index lists repo");
-            ok($index =~ /file1$/m, "index lists file");
-            ok($index =~ /\.nonrepo1:$/m, "index lists non-git dir");
-        },
-    );
-  TODO: {
-        local $TODO = "todo";
-        fail("update backup");
-    }
-
-    test_gb(
-        sub     => "backup_bunch",
-        name    => "--exclude-files --exclude-non-git-dirs",
-        args    => {source=>"src/bunch1/", target=>"bak/2/",
-                    exclude_files=>1, exclude_non_git_dirs=>1},
-        status  => 200,
-        test_res => sub {
-            my ($res) = @_;
-            ok((-d "bak/2"), "target directory created") or return;
-            ok(!(-e "bak/2/file1"), "files not copied");
-            ok(!(-e "bak/2/.nonrepo1"), "nongit dotdir not copied");
-            for my $repo (qw(repo1 repo2)) {
-                ok( (-d "bak/2/$repo"), "repo $repo copied (exists)");
-                ok( (-d "bak/2/$repo/.git"), "repo $repo copied (.git exists)");
-                ok(!(-e "bak/2/$repo/a"),
-                   "repo $repo copied (working copy not copied)");
-                like(`cd bak/2/$repo && git log`, qr/commit1-$repo/i,
-                     "repo $repo copied (git log works)");
-            }
-
-            ok((-f "src/bunch1/.ls-laR.gz"), "index created");
-            ok((-f "bak/2/.ls-laR.gz"), "index copied");
-            my $index = `gzip -cd bak/2/.ls-laR.gz`;
-            ok($index =~ /repo1:$/m, "index lists repo");
-            ok($index !~ /file1$/m, "index doesn't list excluded file");
-            ok($index !~ /\.nonrepo1:$/m,
-               "index doesn't list excluded non-git dir");
-        },
-    );
-
-}
 
 delete_test_data("bak") if Test::More->builder->is_passing;
 
@@ -375,7 +284,7 @@ sub test_gb {
 
         my $res;
         my $eval_err;
-        if ($sub =~ /^(check|backup|sync)_bunch$/) {
+        if ($sub =~ /^(check|sync)_bunch$/) {
             no strict 'refs';
             eval { $res = $sub->(%$sub_args) }; $eval_err = $@;
         } else {
