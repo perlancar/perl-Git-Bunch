@@ -13,7 +13,7 @@ use Git::Bunch qw(check_bunch sync_bunch);
 use Probe::Perl;
 use String::ShellQuote;
 
-# XXX sync + --use_bare
+# XXX sync + --create_bare / --nocreate-bare
 # XXX --exclude_repos_pat
 # XXX --include_repos_pat
 # XXX exec
@@ -216,7 +216,6 @@ test_gb(
              qr/commit6.+commit5.+commit4.+commit3/s,
              "repo1: commits sync-ed");
         my %status = (
-            ".ls-laR.gz" => 200,
             "file1"      => 200,
             ".nonrepo1"  => 200,
             "repo1"      => 200,
