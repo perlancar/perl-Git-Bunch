@@ -1,5 +1,18 @@
 Revision history for Git-Bunch
 
+0.29    2013-08-21 (SHARYANTO)
+
+        [ENHANCEMENTS]
+
+        - sync_bunch(): Add option --create-bare. This replaces --use-bare (the
+          term 'create' is more apt here). Now allow creating non-bare git repos
+          via --nocreate-bare instead of just rsync-ing the source.
+
+        [REMOVED FEATURES]
+
+        - Remove backup_bunch (deprecated since v0.22).
+
+
 0.28    2013-05-18 (SHARYANTO)
 
         No functional changes. Reupload due to missing some code update.
