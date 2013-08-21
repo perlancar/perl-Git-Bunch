@@ -493,18 +493,26 @@ are not owned by root), turn this option on.
 _
             default      => 0,
         }],
-        use_bare => ['bool' => {
-            summary      => 'Whether to create bare git repo instead of '.
-                'copying repo when target does not exist',
+        create_bare_target => ['bool' => {
+            summary      => 'Whether to create bare git repo '.
+                'when target does not exist',
             description  => <<'_',
 
 When target repo does not exist, gitbunch can either copy the source repo using
-`rsync`, or it can create target repo with `git init --bare`.
+`rsync` (the default, if this setting is undefined), or it can create target
+repo with `git init --bare` (if this setting is set to 1), or it can create
+target repo with `git init` (if this setting is set to 0).
+
+Bare git repositories contain only contents of the .git folder inside the
+directory and no working copies of your source files.
 
 Non-repos will still be copied/rsync-ed.
 
 _
-            default      => 0,
+            cmdline_aliases => {
+                # old name, deprecated since v0.29, remove in later releases
+                use_bare => {},
+            },
         }],
     },
     "_cmdline.suppress_output_on_success" => 1,
@@ -531,7 +539,7 @@ sub sync_bunch {
     my $delete_branch = $args{delete_branch} // 0;
     my $source = $args{source};
     my $target = $args{target};
-    my $use_bare = $args{use_bare} // 0;
+    my $create_bare = $args{create_bare_target};
     my $exit;
 
     my $cmd;
@@ -577,10 +585,22 @@ sub sync_bunch {
         }
 
         if (!(-e $e)) {
-            if ($use_bare) {
-                $log->info("Initializing target repo $e ...");
+            if ($create_bare) {
+                $log->info("Initializing target repo $e (bare) ...");
                 $cmd = "mkdir ".shell_quote($e)." && cd ".shell_quote($e).
                     " && git init --bare";
+                system($cmd);
+                $exit = $? >> 8;
+                if ($exit) {
+                    $log->warn("Git init failed, please check: $exit");
+                    $res{$e} = [500, "git init --bare failed: $exit"];
+                    next ENTRY;
+                }
+                # continue to sync-ing
+            } elsif (defined $create_bare) {
+                $log->info("Initializing target repo $e (non-bare) ...");
+                $cmd = "mkdir ".shell_quote($e)." && cd ".shell_quote($e).
+                    " && git init";
                 system($cmd);
                 $exit = $? >> 8;
                 if ($exit) {
@@ -688,12 +708,12 @@ $SPEC{backup_bunch} = {
     description   => <<'_',
 
 NOTE: This function is deprecated. If you want space-efficient backup of your
-bunch, sync-ing with --use_bare option is now the recommended way.
+bunch, sync-ing with --create-bare-target=1 option is now the recommended way.
 
-Simply uses rsync to copy bunch directory to another, except that for all git
-projects, only .git/ will be rsync-ed. This utilizes the fact that .git/
-contains the whole project's data, the working copy can be checked out from
-.git/.
+This function simply uses rsync to copy bunch directory to another, except that
+for all git projects, only .git/ will be rsync-ed. This utilizes the fact that
+.git/ contains the whole project's data, the working copy can be checked out
+from .git/.
 
 Will run check_bunch first and require all repos to be clean before running the
 backup, unless 'check' is turned off.
