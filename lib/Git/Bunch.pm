@@ -532,6 +532,22 @@ _
                 use_bare => {},
             },
         },
+        backup => {
+            summary     => 'Whether doing backup to target',
+            schema      => ['bool'],
+            description => <<'_',
+
+This setting lets you express that you want to perform synchronizing to a backup
+target, and that you do not do work on the target. Thus, you do not care about
+uncommitted or untracked files/dirs in the target repos (might happen if you
+also do periodic copying of repos to backup using cp/rsync). When this setting
+is turned on, the function will first do a `git clean -f -d` (to delete
+untracked files/dirs) and then `git checkout .` (to discard all uncommitted
+changes). This setting will also implicitly turn on `create_bare` setting
+(unless that setting has been explicitly enabled/disabled).
+
+_
+        },
     },
     deps => {
         all => [
@@ -557,7 +573,10 @@ sub sync_bunch {
     my $source = $args{source};
     my $target = $args{target};
     my $create_bare = $args{create_bare_target};
+    my $backup = $args{backup};
     my $exit;
+
+    $create_bare //= 1 if $backup;
 
     my $cmd;
 
@@ -601,6 +620,7 @@ sub sync_bunch {
             next ENTRY;
         }
 
+        my $created;
         if (!(-e $e)) {
             if ($create_bare) {
                 $log->info("Initializing target repo $e (bare) ...");
@@ -613,6 +633,7 @@ sub sync_bunch {
                     $res{$e} = [500, "git init --bare failed: $exit"];
                     next ENTRY;
                 }
+                $created++;
                 # continue to sync-ing
             } elsif (defined $create_bare) {
                 $log->info("Initializing target repo $e (non-bare) ...");
@@ -625,6 +646,7 @@ sub sync_bunch {
                     $res{$e} = [500, "git init failed: $exit"];
                     next ENTRY;
                 }
+                $created++;
                 # continue to sync-ing
             } else {
                 $progress->update(pos => $i,
@@ -643,6 +665,13 @@ sub sync_bunch {
                 $log->warn("Repo $e copied");
                 next ENTRY;
             }
+        }
+
+        if ($backup && !$created) {
+            $log->debug("Discarding changes in target repo $e ...");
+            local $CWD = $e;
+            system "git clean -f -d && git checkout .";
+            # ignore error for now, let's go ahead and sync anyway
         }
 
         $progress->update(pos => $i, message => "Sync-ing repo $e ...")
@@ -795,4 +824,3 @@ locations. I put all my data in one big gitbunch directory; I find it simpler.
 Git::Bunch works for me and I use it daily.
 
 =cut
-
