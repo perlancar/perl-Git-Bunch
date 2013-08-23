@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.30    2013-08-23 (SHARYANTO)
+
+        [ENHANCEMENTS]
+
+        - sync_bunch(): Add option --backup.
+
+
 0.29    2013-08-21 (SHARYANTO)
 
         [ENHANCEMENTS]
