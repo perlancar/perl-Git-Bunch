@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.31    2013-08-31 (SHARYANTO)
+
+        - No functional changes.
+
+        - sync_bunch(): Show message if a non-git file/dir is updated in target.
+
+
 0.30    2013-08-23 (SHARYANTO)
 
         [ENHANCEMENTS]
