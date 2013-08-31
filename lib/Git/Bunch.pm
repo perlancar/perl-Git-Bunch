@@ -560,6 +560,9 @@ _
     },
 };
 sub sync_bunch {
+    require Capture::Tiny;
+    require UUID::Random;
+
     my %args = @_;
     my $res;
 
@@ -608,13 +611,22 @@ sub sync_bunch {
                               message =>
                                   "Sync-ing non-git file/directory $e ...")
                  if $progress;
-            $cmd = "rsync -${a}z --del --force ".shell_quote("$source/$e")." .";
-            system($cmd);
-            $exit = $? >> 8;
-            if ($exit) {
-                $log->warn("Rsync failed, please check: $exit");
-                $res{$e} = [500, "rsync failed: $exit"];
+            # just some random unique string so we can detect whether any
+            # file/dir is modified/added to target. to check files deleted in
+            # target, we use /^deleting /x
+            my $uuid = UUID::Random::generate();
+            my $v = $log->is_debug ? "-v" : "";
+            $cmd = "LANG=C rsync --log-format=$uuid -${a}z $v --del --force ".
+                shell_quote("$source/$e")." .";
+            my ($stdout, @result) = Capture::Tiny::capture_stdout(
+                sub { system($cmd) });
+            if ($result[0]) {
+                $log->warn("Rsync failed, please check: $result[0]");
+                $res{$e} = [500, "rsync failed: $result[0]"];
             } else {
+                if ($stdout =~ /^(deleting |\Q$uuid\E)/m) {
+                    $log->warn("Non-git file/dir '$e' updated");
+                }
                 $res{$e} = [200, "rsync-ed"];
             }
             next ENTRY;
