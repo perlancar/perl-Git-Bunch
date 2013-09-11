@@ -819,6 +819,12 @@ None of the functions are exported by default, but they are exportable.
 
 =item * Can't handle bare source repos
 
+=item * Sync-ing to bare repos (e.g. with --backup) still produces error messages
+
+Although the sync process succeeds, the error messages (like C<< fatal: Not a
+git repository >>) might be confusing.
+
+
 =back
 
 
