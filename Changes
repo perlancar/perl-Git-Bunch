@@ -29,28 +29,28 @@ Revision history for Git-Bunch
 
 0.28    2013-05-18 (SHARYANTO)
 
-        No functional changes. Reupload due to missing some code update.
+        - No functional changes. Reupload due to missing some code update.
 
 
 0.27    2013-05-18 (SHARYANTO)
 
-        No functional changes. Update to Perinci::CmdLine 0.79 (Progress::Any
-        0.08).
+        - No functional changes. Update to Perinci::CmdLine 0.79 (Progress::Any
+          0.08).
 
 
 0.26    2012-12-20 (SHARYANTO)
 
-        No functional changes. Tweak error message.
+        - No functional changes. Tweak error message.
 
 
 0.25    2012-11-20 (SHARYANTO)
 
-        No functional changes. Use progress indicator for 'sync_bunch'.
+        - No functional changes. Use progress indicator for 'sync_bunch'.
 
 
 0.24    2012-10-24 (SHARYANTO)
 
-        No functional changes. Use progress indicator for 'sync_bunch'.
+        - No functional changes. Use progress indicator for 'sync_bunch'.
 
 
 0.23    2012-07-24 (SHARYANTO)
@@ -77,52 +77,52 @@ Revision history for Git-Bunch
 
 0.21    2012-04-16 (SHARYANTO)
 
-        Check: detect repo needs merging.
+        - Check: detect repo needs merging.
 
 
 0.20    2012-04-10 (SHARYANTO)
 
-        No functional change. Small update to metadata.
+        - No functional change. Small update to metadata.
 
 
 0.19    2012-03-08 (SHARYANTO)
 
-        Small update to regex. Update to Perinci::CmdLine 0.40.
+        - Small update to regex. Update to Perinci::CmdLine 0.40.
 
 
 0.18    2012-03-03 (SHARYANTO)
 
-        Add 'cmdline.result_importance' => 'low' to result metadata, to suppress
-        verbose output.
+        - Add 'cmdline.result_importance' => 'low' to result metadata, to suppress
+          verbose output.
 
 
 0.17    2012-03-02 (SHARYANTO)
 
-        No functional changes. Replace Sub::Spec::CmdLine with Perinci::CmdLine.
+        - No functional changes. Replace Sub::Spec::CmdLine with Perinci::CmdLine.
 
 
 0.16    2011-09-16 (SHARYANTO)
 
         [INCOMPATIBLE CHANGES]
 
-        * backup: Change default check from 1 to 0, to make backup more robust
+        - backup: Change default check from 1 to 0, to make backup more robust
           (I often forgot to add --nocheck while having some repos uncommitted,
           resulting in failure of backup).
 
 
 0.15    2011-08-03 (SHARYANTO)
 
-        No functional changes. Add temporary dependencies to
-        Sub::Spec::GetArgs::Array 0.02 so that string arg_greedy arg works (e.g.
-        "gitbunch exec ~/repos -- ls -l -d" instead of "gitbunch exec ~/repos
-        'ls -l -d'".
+        - No functional changes. Add temporary dependencies to
+          Sub::Spec::GetArgs::Array 0.02 so that string arg_greedy arg works
+          (e.g. "gitbunch exec ~/repos -- ls -l -d" instead of "gitbunch exec
+          ~/repos 'ls -l -d'".
 
 
 0.14    2011-07-07 (SHARYANTO)
 
         [INCOMPATIBLE CHANGES]
 
-        * sync: By default now uses 'rsync -rlptD' (-a minus -go) instead of
+        - sync: By default now uses 'rsync -rlptD' (-a minus -go) instead of
           'rsync -a' when copying repo to target. This is because -a is
           problematic on sshfs-mounted filesystem. Old behaviour is available by
           setting rsync_opt_maintain_ownership to 1.
@@ -132,95 +132,95 @@ Revision history for Git-Bunch
 
         [ENHANCEMENTS]
 
-        * Add --exclude-files and --exclude-non-git-dirs options.
+        - Add --exclude-files and --exclude-non-git-dirs options.
 
         [BUG FIXES]
 
-        * backup_bunch: Do not index excluded items.
+        - backup_bunch: Do not index excluded items.
 
 
 0.12    2011-06-04 (SHARYANTO)
 
-        No functional changes.
+        - No functional changes.
 
         [BUG FIXES]
 
-        * Fix spec for exec_bunch().
+        - Fix spec for exec_bunch().
 
 
 0.11    2011-06-04 (SHARYANTO)
 
-        No functional changes.
+        - No functional changes.
 
         [BUG FIXES]
 
-        * Fix spec for exec_bunch().
+        - Fix spec for exec_bunch().
 
 
 0.10    2011-06-04 (SHARYANTO)
 
         [NEW FEATURES]
 
-        * New function: exec_bunch() ("gitbunch exec").
+        - New function: exec_bunch() ("gitbunch exec").
 
         [ENHANCEMENTS]
 
-        * Add --exclude_repos_pat and --include_repos_pat options.
+        - Add --exclude_repos_pat and --include_repos_pat options.
 
-        * Exclude/include repos options added to all functions.
+        - Exclude/include repos options added to all functions.
 
 
 0.09    2011-04-19 (SHARYANTO)
 
-        Add --exclude_repos to sync_bunch.
+        - Add --exclude_repos to sync_bunch.
 
 
 0.08    2011-03-04 (SHARYANTO)
 
-        Fix test when run as root.
+        - Fix test when run as root.
 
 
 0.07    2011-03-04 (SHARYANTO)
 
-        Sort repos in sorted order.
+        - Sort repos in sorted order.
 
-        Fix: pass extra_rsync_opts to rsync.
+        - Fix: pass extra_rsync_opts to rsync.
 
-        Fix test (git co -> git checkout).
+        - Fix test (git co -> git checkout).
 
 
 0.06    2011-02-28 (SHARYANTO)
 
-        Update to the latest Sub::Spec: 'depends' clause -> 'deps'. Add a few
-        dependency clauses (e.g. to 'git' and 'rsync' binary).
+        - Update to the latest Sub::Spec: 'depends' clause -> 'deps'. Add a few
+          dependency clauses (e.g. to 'git' and 'rsync' binary).
 
-        For safety, bail out if given git repo dir instead of bunch dir as
-        source/target.
+        - For safety, bail out if given git repo dir instead of bunch dir as
+          source/target.
 
-        Add tests.
+        - Add tests.
 
 
 0.05    2011-02-22 (SHARYANTO)
 
-        Update to the latest Sub::Spec (%SUBS -> %SPEC).
+        - Update to the latest Sub::Spec (%SUBS -> %SPEC).
 
 
 0.04    2011-02-16 (SHARYANTO)
 
-        Reduce startup overhead (avoid loading Log::Any::App) when invoked for
-        bash completion.
+        - Reduce startup overhead (avoid loading Log::Any::App) when invoked for
+          bash completion.
 
 
 0.03    2011-02-16 (SHARYANTO)
 
-        Add missing dependency (File::chdir). [CT]
+        - Add missing dependency (File::chdir). [CT]
 
 
 0.02    2011-02-15 (SHARYANTO)
 
-        Change log levels.
+        - Change log levels.
 
 
 0.01    2011-02-15 (SHARYANTO)
 
-        First release.
+        - First release.
