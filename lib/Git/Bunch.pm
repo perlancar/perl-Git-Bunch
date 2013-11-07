@@ -13,7 +13,7 @@ use String::ShellQuote;
 
 require Exporter;
 our @ISA       = qw(Exporter);
-our @EXPORT_OK = qw(check_bunch sync_bunch backup_bunch exec_bunch);
+our @EXPORT_OK = qw(check_bunch sync_bunch exec_bunch);
 
 # VERSION
 
@@ -61,9 +61,8 @@ our %common_args_spec = (
         schema       => ['bool'],
         description  => <<'_',
 
-This only applies to 'backup_bunch' and 'sync_bunch' operations. Operations like
-'check_bunch' and 'exec_bunch' already ignore these and only operate on git
-repos.
+This only applies to and `sync_bunch` operations. Operations like `check_bunch`
+and `exec_bunch` already ignore these and only operate on git repos.
 
 _
     },
@@ -72,9 +71,8 @@ _
         schema       => ['bool'],
     description      => <<'_',
 
-This only applies to 'backup_bunch' and 'sync_bunch' operations. Operations like
-'check_bunch' and 'exec_bunch' already ignore these and only operate on git
-repos.
+This only applies to `sync_bunch` operations. Operations like `check_bunch` and
+`exec_bunch` already ignore these and only operate on git repos.
 
 _
     },

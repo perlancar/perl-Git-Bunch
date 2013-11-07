@@ -12,7 +12,6 @@ Perinci::CmdLine->new(
     subcommands => {
         check  => { url => '/Git/Bunch/check_bunch'  },
         sync   => { url => '/Git/Bunch/sync_bunch'   },
-        backup => { url => '/Git/Bunch/backup_bunch' },
         exec   => { url => '/Git/Bunch/exec_bunch'   },
     }
 )->run;
