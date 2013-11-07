@@ -805,11 +805,6 @@ this.
 See also L<File::RsyBak>, which I wrote to backup everything else.
 
 
-=head1 FUNCTIONS
-
-None of the functions are exported by default, but they are exportable.
-
-
 =head1 FAQ
 
 
