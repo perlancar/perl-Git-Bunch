@@ -3,6 +3,7 @@ package Git::Bunch;
 use 5.010001;
 use strict;
 use warnings;
+use experimental 'smartmatch';
 use Log::Any '$log';
 
 use Builtin::Logged qw(system my_qx);
