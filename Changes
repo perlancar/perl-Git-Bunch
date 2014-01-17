@@ -1,5 +1,11 @@
 Revision history for Git-Bunch
 
+0.32    2014-01-17 (SHARYANTO)
+
+        - No functional changes. Add 'use experimental smartmatch' for Perl
+          5.18+.
+
+
 0.31    2013-08-31 (SHARYANTO)
 
         - No functional changes.
