@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.34    2014-05-17 (SHARYANTO)
+
+        - No functional changes.
+
+        - Replace File::Slurp with File::Slurp::Tiny.
+
+
 0.33    2014-03-15 (SHARYANTO)
 
         - No functional changes. Rebuild to fix POD documentation (function
