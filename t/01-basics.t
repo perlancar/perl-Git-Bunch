@@ -6,7 +6,7 @@ use warnings;
 use Test::More 0.96;
 
 use File::chdir;
-use File::Slurp::Shortcuts qw(slurp_cq write_file);
+use File::Slurp::Tiny qw(read_file write_file);
 use File::Temp qw(tempdir);
 use File::Which;
 use Git::Bunch qw(check_bunch sync_bunch);
@@ -166,15 +166,15 @@ test_gb(
     test_res => sub {
         my ($res) = @_;
         ok((-d "sync/1"), "target directory created") or return;
-        is(slurp_cq("sync/1/file1"), "foo", "files copied");
+        is(read_file("sync/1/file1", chomp=>1), "foo", "files copied");
         ok((-d "sync/1/.nonrepo1"), "nongit dotdir copied (exists)");
-        is(slurp_cq("sync/1/.nonrepo1/t"), "tea",
+        is(read_file("sync/1/.nonrepo1/t", chomp=>1), "tea",
            "nongit dotdir copied (content)");
         for my $repo (qw(repo1 repo2)) {
             ok( (-d "sync/1/$repo"), "repo $repo copied (exists)");
             ok( (-d "sync/1/$repo/.git"),
                 "repo $repo copied (.git exists)");
-            is( slurp_cq("sync/1/$repo/a"), "apple",
+            is( read_file("sync/1/$repo/a", chomp=>1), "apple",
                 "repo $repo copied (working copy copied)");
             like(`cd sync/1/$repo && git log`, qr/commit1-$repo/i,
                  "repo $repo copied (git log works)");
@@ -204,14 +204,17 @@ test_gb(
     status  => 200,
     test_res => sub {
         my ($res) = @_;
-        is(slurp_cq("sync/1/file1"), "foobar", "files updated");
-        is(slurp_cq("sync/1/.nonrepo1/t"), "tangerine",
+        is(read_file("sync/1/file1", chomp=>1), "foobar", "files updated");
+        is(read_file("sync/1/.nonrepo1/t", chomp=>1), "tangerine",
            "nongit dotdir updated");
         ok(!(-e "sync/1/repo1/a"), "repo1: a deleted");
-        is(slurp_cq("sync/1/repo1/e"), "eggplant", "repo1: e added");
-        is(slurp_cq("sync/1/repo1/d/b"), "blackberry", "repo1: b updated");
+        is(read_file("sync/1/repo1/e", chomp=>1), "eggplant",
+           "repo1: e added");
+        is(read_file("sync/1/repo1/d/b", chomp=>1), "blackberry",
+           "repo1: b updated");
         ok(!(-e "sync/1/repo1/k"), "repo1: k moved (1)");
-        is(slurp_cq("sync/1/repo1/d/k"), "kangkung", "repo1: k moved (2)");
+        is(read_file("sync/1/repo1/d/k", chomp=>1), "kangkung",
+           "repo1: k moved (2)");
         like(`cd sync/1/repo1 && git log`,
              qr/commit6.+commit5.+commit4.+commit3/s,
              "repo1: commits sync-ed");
@@ -242,12 +245,12 @@ test_gb(
     test_res => sub {
         my ($res) = @_;
         system "cd sync/1/repo2 && git checkout master";
-        is(slurp_cq("sync/1/repo2/s1"),
+        is(read_file("sync/1/repo2/s1", chomp=>1),
            "strawberry", "branch master: s1 added");
         ok(!(-e "sync/1/repo2/s2"), "branch master: s2 not added");
 
         system "cd sync/1/repo2 && git checkout b2";
-        is(slurp_cq("sync/1/repo2/s2"),
+        is(read_file("sync/1/repo2/s2", chomp=>1),
            "spearmint", "branch b2: s2 added");
         ok(!(-e "sync/1/repo2/s1"), "branch b2: s2 not added");
     },
