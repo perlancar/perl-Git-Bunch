@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.35    2014-06-02 (SHARYANTO)
+
+        - Add new (and new default) sort order: -commit-timestamp. This lets
+          gitbunch process recently committed repos first. Can save some time if
+          you have many repos and want to interrupt the script in the middle.
+
+
 0.34    2014-05-17 (SHARYANTO)
 
         - No functional changes.
