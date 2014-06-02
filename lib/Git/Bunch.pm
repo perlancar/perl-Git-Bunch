@@ -34,9 +34,20 @@ our %common_args_spec = (
     },
     sort             => {
         summary      => 'Order entries in bunch',
+        description  => <<'_',
+
+`commit-timestamp` (and `-commit-timestamp`) compares the timestamp of
+`.git/commit-timestamp` file in each repo. Repos or dirs not having this file
+will be processed later. You can touch these `.git/commit-timestamp` files in
+your post-commit script, for example. This allows sorting recently committed
+repos more cheaply (compared to doing `git log -1`).
+
+_
         schema       => ['str' => {
-            default => '-mtime',
-            in      => [qw/name -name mtime -mtime rand/],
+            default => '-commit-timestamp',
+            in      => [qw/name -name mtime -mtime rand
+                           commit-timestamp -commit-timestamp
+                          /],
         }],
     },
     include_repos    => {
@@ -141,6 +152,17 @@ sub _check_common_args {
         $sortsub = sub {$b cmp $a};
     } elsif ($sort eq 'name') {
         $sortsub = sub {$a cmp $b};
+    } elsif ($sort =~ /^(-)commit-timestamp$/) {
+        my $rev = $1;
+        $sortsub = sub {
+            my $ts_file = ".git/.commit-timestamp";
+            my $ts_a = (-M "$a/$ts_file");
+            my $ts_b = (-M "$b/$ts_file");
+            return  0 if !$ts_a && !$ts_b;
+            return  1 if !$ts_a;
+            return -1 if !$ts_b;
+            return $ts_a <=> $ts_b;
+        };
     } else { # rand
         $sortsub = sub {int(3*rand())-1};
     }
