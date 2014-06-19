@@ -616,8 +616,11 @@ sub sync_bunch {
     my $a = $args{rsync_opt_maintain_ownership} ? "aH" : "rlptDH";
 
     my @entries;
-    opendir my($d), $source;
-    @entries = sort $sortsub readdir($d);
+    {
+        local $CWD = $source;
+        opendir my($d), ".";
+        @entries = sort $sortsub readdir($d);
+    }
     $log->tracef("entries: %s", \@entries);
 
     $source = Cwd::abs_path($source);
