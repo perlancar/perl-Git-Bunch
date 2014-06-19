@@ -285,7 +285,7 @@ sub check_bunch {
     local $CWD = $source;
 
     my @entries = sort $sortsub grep {-d} <*>;
-    $log->tracef("entries: %s", \@entries);
+    #$log->tracef("entries: %s", \@entries);
 
     my $i = 0;
     $progress->pos(0) if $progress;
@@ -621,7 +621,7 @@ sub sync_bunch {
         opendir my($d), ".";
         @entries = sort $sortsub readdir($d);
     }
-    $log->tracef("entries: %s", \@entries);
+    #$log->tracef("entries: %s", \@entries);
 
     $source = Cwd::abs_path($source);
     local $CWD = $target;
@@ -768,7 +768,7 @@ sub exec_bunch {
     my %res;
     my $i = 0;
     my @entries = sort $sortsub grep {-d} <*>;
-    $log->tracef("entries: %s", \@entries);
+    #$log->tracef("entries: %s", \@entries);
   REPO:
     for my $repo (@entries) {
         $CWD = $i++ ? "../$repo" : $repo;
