@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.36    2014-06-19 (SHARYANTO)
+
+        [BUG FIXES]
+
+        - Fix sorting by commit-timestamp for sync_bunch() (cwd problem).
+
+
 0.35    2014-06-02 (SHARYANTO)
 
         - Add new (and new default) sort order: -commit-timestamp. This lets
