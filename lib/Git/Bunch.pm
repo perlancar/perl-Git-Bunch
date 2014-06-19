@@ -285,6 +285,7 @@ sub check_bunch {
     local $CWD = $source;
 
     my @entries = sort $sortsub grep {-d} <*>;
+    $log->tracef("entries: %s", \@entries);
 
     my $i = 0;
     $progress->pos(0) if $progress;
@@ -615,7 +616,9 @@ sub sync_bunch {
     my $a = $args{rsync_opt_maintain_ownership} ? "aH" : "rlptDH";
 
     my @entries;
-    opendir my($d), $source; @entries = sort $sortsub readdir($d);
+    opendir my($d), $source;
+    @entries = sort $sortsub readdir($d);
+    $log->tracef("entries: %s", \@entries);
 
     $source = Cwd::abs_path($source);
     local $CWD = $target;
@@ -761,8 +764,10 @@ sub exec_bunch {
     local $CWD = $source;
     my %res;
     my $i = 0;
+    my @entries = sort $sortsub grep {-d} <*>;
+    $log->tracef("entries: %s", \@entries);
   REPO:
-    for my $repo (sort $sortsub grep {-d} <*>) {
+    for my $repo (@entries) {
         $CWD = $i++ ? "../$repo" : $repo;
         next REPO if _skip_process_repo($repo, \%args, ".");
         $log->info("Executing command on $repo ...");
