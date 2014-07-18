@@ -1,5 +1,16 @@
 Revision history for Git-Bunch
 
+0.38    2014-07-18 (SHARYANTO)
+
+        - Add option --repo to only process a single repo in the bunch and not
+          logging lots of skipped messages if we used --include-repos ONEREPO.
+
+        [REMOVED FEATURES]
+
+        - Remove option alias --repos for --include-repos because it's too
+          similar to the new --repo.
+
+
 0.37    2014-06-21 (SHARYANTO)
 
         [ENHANCEMENTS]
