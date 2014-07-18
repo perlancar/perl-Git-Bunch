@@ -57,10 +57,13 @@ _
         schema       => ['array' => {
             of => 'str*',
         }],
-        cmdline_aliases => {
-            repos => {},
-        },
     },
+    repo             => {
+        summary      => 'Only process a single repo',
+        schema       => 'str*',
+    },
+    # XXX option to only process a single non-git dir?
+    # XXX option to only process a single file?
     include_repos_pat=> {
         summary      => 'Specify regex pattern of repos to include',
         schema       => ['str'],
@@ -187,6 +190,14 @@ sub _skip_process_entry {
     return 1 if $e eq '.' || $e eq '..';
     my $is_repo = _is_repo($dir);
 
+    if (defined $args->{repo}) {
+        # avoid logging all the skipped messages if user just wants to process a
+        # single repo
+        return 1 unless $is_repo;
+        return 1 unless $args->{repo} eq $e;
+        return 0;
+    }
+
     if ($skip_non_repo && !$is_repo) {
         $log->warn("Skipped $e (not a git repo), ".
                        "please remove it or rename to .$e");
@@ -220,7 +231,7 @@ sub _skip_process_entry {
         $log->debug("Skipped $e (exclude_non_git_dirs)");
         return 1;
     }
-    return;
+    return 0;
 }
 
 sub _skip_process_repo {
