@@ -350,7 +350,7 @@ sub check_bunch {
     [200,
      $has_unclean ? "Some repos unclean" : "All repos clean",
      \%res,
-     {"cmdline.display_result" => 0}];
+     {"cmdline_result" => ''}];
 }
 
 sub _sync_repo {
@@ -740,7 +740,7 @@ sub sync_bunch {
     [200,
      "OK",
      \%res,
-     {"cmdline.display_result" => 0}];
+     {"cmdline.result" => ''}];
 }
 
 $SPEC{exec_bunch} = {
@@ -801,7 +801,7 @@ sub exec_bunch {
     [200,
      "OK",
      \%res,
-     {"cmdline.display_result" => 0}];
+     {"cmdline.result" => ''}];
 }
 
 1;
