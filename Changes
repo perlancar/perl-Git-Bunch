@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.39    2014-08-23 (SHARYANTO)
+
+        - No functional changes.
+
+        - Adjust to Perinci::CmdLine 1.19.
+
+
 0.38    2014-07-18 (SHARYANTO)
 
         - Add option --repo to only process a single repo in the bunch and not
