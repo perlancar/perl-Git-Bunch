@@ -81,6 +81,13 @@ This only applies to and `sync_bunch` operations. Operations like `check_bunch`
 and `exec_bunch` already ignore these and only operate on git repos.
 
 _
+        cmdline_aliases => {
+            include_non_git_dirs => {
+                summary => 'Alias for --no-exclude-non-git-dirs',
+                schema  => ['bool*', is=>1],
+                code    => sub { $_[0]{exclude_non_git_dirs} = 0 },
+            },
+        },
     },
     exclude_files    => {
         summary      => 'Exclude files from processing',
@@ -91,6 +98,13 @@ This only applies to `sync_bunch` operations. Operations like `check_bunch` and
 `exec_bunch` already ignore these and only operate on git repos.
 
 _
+        cmdline_aliases => {
+            include_files => {
+                summary => 'Alias for --no-exclude-files',
+                schema  => ['bool*', is=>1],
+                code    => sub { $_[0]{exclude_non_git_dirs} = 0 },
+            },
+        },
     },
     exclude_repos_pat=> {
         summary      => 'Specify regex pattern of repos to exclude',
