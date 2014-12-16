@@ -18,7 +18,7 @@ Perinci::CmdLine->new(
 
 1;
 # ABSTRACT: Manage gitbunch directory (directory which contain git repos)
-# PODNAME: gitbunch
+# PODNAME:
 
 =head1 DESCRIPTION
 
