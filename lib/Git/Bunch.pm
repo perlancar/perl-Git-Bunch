@@ -819,7 +819,7 @@ sub exec_bunch {
 }
 
 1;
-# ABSTRACT: Manage gitbunch directory (directory which contain git repos)
+# ABSTRACT:
 
 =head1 SYNOPSIS
 
