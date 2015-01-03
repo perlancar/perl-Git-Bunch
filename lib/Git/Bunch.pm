@@ -457,8 +457,8 @@ sub _sync_repo {
             $output = my_qx(
                 join("",
                      "cd '$dest/$repo'; ",
-                     ($branch ~~ @dest_branches ? "":"git branch '$branch'; "),
-                     "git checkout '$branch' 2>/dev/null; ",
+                     ($branch ~~ @dest_branches ? "":"LANG=C git branch '$branch'; "),
+                     "LANG=C git checkout '$branch' 2>/dev/null; ",
                      "LANG=C git pull '$src/$repo' '$branch' 2>&1"
                  ));
         }
@@ -506,8 +506,8 @@ sub _sync_repo {
             $changed_branch++;
             $log->info("Deleting branch $branch of repo $repo because ".
                            "it no longer exists in src ...");
-            system("cd '$dest/$repo' && git checkout master 2>/dev/null && ".
-                       "git branch -D '$branch' 2>/dev/null");
+            system("cd '$dest/$repo' && LANG=C git checkout master 2>/dev/null && ".
+                       "LANG=C git branch -D '$branch' 2>/dev/null");
             $exit = $? >> 8;
             $log->error("Failed deleting branch $branch of repo $repo: $exit")
                 if $exit;
@@ -691,12 +691,12 @@ sub sync_bunch {
             if ($create_bare) {
                 $log->info("Initializing target repo $e (bare) ...");
                 $cmd = "mkdir ".shell_quote($e)." && cd ".shell_quote($e).
-                    " && git init --bare";
+                    " && LANG=C git init --bare";
                 system($cmd);
                 $exit = $? >> 8;
                 if ($exit) {
                     $log->warn("Git init failed, please check: $exit");
-                    $res{$e} = [500, "git init --bare failed: $exit"];
+                    $res{$e} = [500, "LANG=C git init --bare failed: $exit"];
                     next ENTRY;
                 }
                 $created++;
@@ -704,7 +704,7 @@ sub sync_bunch {
             } elsif (defined $create_bare) {
                 $log->info("Initializing target repo $e (non-bare) ...");
                 $cmd = "mkdir ".shell_quote($e)." && cd ".shell_quote($e).
-                    " && git init";
+                    " && LANG=C git init";
                 system($cmd);
                 $exit = $? >> 8;
                 if ($exit) {
@@ -737,7 +737,7 @@ sub sync_bunch {
         if ($backup && !$created) {
             $log->debug("Discarding changes in target repo $e ...");
             local $CWD = $e;
-            system "git clean -f -d && git checkout .";
+            system "LANG=C git clean -f -d && LANG=C git checkout .";
             # ignore error for now, let's go ahead and sync anyway
         }
 
