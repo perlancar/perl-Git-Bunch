@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.42    2015-01-03 (PERLANCAR)
+
+	- No functional changes.
+
+	- Pepper more LANG=C to force English output [RT#101263].
+
+
 0.41    2015-01-03 (PERLANCAR)
 
 	- No functional changes.
