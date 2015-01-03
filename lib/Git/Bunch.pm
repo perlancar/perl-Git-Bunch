@@ -865,21 +865,6 @@ See also L<File::RsyBak>, which I wrote to backup everything else.
 =head1 FAQ
 
 
-=head1 TODO
-
-=over 4
-
-=item * Can't handle bare source repos
-
-=item * Sync-ing to bare repos (e.g. with --backup) still produces error messages
-
-Although the sync process succeeds, the error messages (like C<< fatal: Not a
-git repository >>) might be confusing.
-
-
-=back
-
-
 =head1 SEE ALSO
 
 B<mr>, http://joeyh.name/code/mr/ . You probably want to use this instead. mr
