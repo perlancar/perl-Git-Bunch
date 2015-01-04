@@ -1,5 +1,11 @@
 Revision history for Git-Bunch
 
+0.43    2015-01-04 (PERLANCAR)
+
+	- Second attempt to force C locale, by using IPC::System::Locale
+	  [RT#101263].
+
+
 0.42    2015-01-03 (PERLANCAR)
 
 	- No functional changes.
