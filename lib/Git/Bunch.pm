@@ -9,7 +9,7 @@ use warnings;
 use experimental 'smartmatch';
 use Log::Any '$log';
 
-use Builtin::Logged qw(system my_qx);
+use IPC::System::Locale qw(system backtick);
 use Cwd ();
 use File::chdir;
 use File::Path qw(make_path);
@@ -325,7 +325,7 @@ sub check_bunch {
                               "Checking repo $repo ...")
             if $progress;
 
-        my $output = `LANG=C git status 2>&1`;
+        my $output = backtick("git status 2>&1");
         my $exit = $? >> 8;
         if ($exit == 0 && $output =~ /nothing to commit/) {
             $log->info("$repo is clean");
@@ -377,7 +377,7 @@ sub _sync_repo {
     my %dest_heads; # last revisions for each branch
 
     local $CWD = "$src/$repo";
-    @src_branches = map {(/^[* ] (.+)/, $1)[-1]} my_qx("LANG=C git branch");
+    @src_branches = map {(/^[* ] (.+)/, $1)[-1]} backtick("git branch");
     $exit = $? >> 8;
     if ($exit) {
         $log->error("Can't list branches on src repo $src/$repo: $exit");
@@ -386,7 +386,7 @@ sub _sync_repo {
     $log->debugf("Source branches: %s", \@src_branches);
 
     for my $branch (@src_branches) {
-        my $output = my_qx("LANG=C git log -1 '$branch'");
+        my $output = backtick("git log -1 '$branch'");
         $exit = $? >> 8;
         if ($exit) {
             $log->error("Can't find out head for branch $branch on src repo ".
@@ -404,14 +404,14 @@ sub _sync_repo {
 
     $CWD = "$dest/$repo";
     my $is_bare = _is_repo(".") == 2;
-    @dest_branches = map {(/^[* ] (.+)/, $1)[-1]} my_qx("LANG=C git branch");
+    @dest_branches = map {(/^[* ] (.+)/, $1)[-1]} backtick("git branch");
     if ($exit) {
         $log->error("Can't list branches on dest repo $repo: $exit");
         return [500, "Can't list branches on dest: $exit"];
     }
     $log->debugf("Dest branches: %s", \@dest_branches);
     for my $branch (@dest_branches) {
-        my $output = my_qx("LANG=C git log -1 '$branch'");
+        my $output = backtick("git log -1 '$branch'");
         $exit = $? >> 8;
         if ($exit) {
             $log->error("Can't find out head for branch $branch on dest repo ".
@@ -448,18 +448,18 @@ sub _sync_repo {
         $log->info("Updating branch $branch of repo $repo ...")
             if @src_branches > 1;
         if ($is_bare) {
-            $output = my_qx(
+            $output = backtick(
                 join("",
                      "cd '$src/$repo'; ",
-                     "LANG=C git push '$dest/$repo' '$branch' 2>&1",
+                     "git push '$dest/$repo' '$branch' 2>&1",
                  ));
         } else {
-            $output = my_qx(
+            $output = backtick(
                 join("",
                      "cd '$dest/$repo'; ",
-                     ($branch ~~ @dest_branches ? "":"LANG=C git branch '$branch'; "),
-                     "LANG=C git checkout '$branch' 2>/dev/null; ",
-                     "LANG=C git pull '$src/$repo' '$branch' 2>&1"
+                     ($branch ~~ @dest_branches ? "":"git branch '$branch'; "),
+                     "git checkout '$branch' 2>/dev/null; ",
+                     "git pull '$src/$repo' '$branch' 2>&1"
                  ));
         }
         $exit = $? >> 8;
@@ -489,8 +489,8 @@ sub _sync_repo {
         $log->debug("Result of 'git pull/push' for branch $branch of repo ".
                         "$repo: exit=$exit, output=$output");
 
-        $output = my_qx("cd '$dest/$repo'; ".
-                            "LANG=C git fetch --tags '$src/$repo' 2>&1");
+        $output = backtick("cd '$dest/$repo'; ".
+                               "git fetch --tags '$src/$repo' 2>&1");
         $exit = $? >> 8;
         if ($exit != 0) {
             $log->debug("Failed fetching tags: ".
@@ -506,8 +506,8 @@ sub _sync_repo {
             $changed_branch++;
             $log->info("Deleting branch $branch of repo $repo because ".
                            "it no longer exists in src ...");
-            system("cd '$dest/$repo' && LANG=C git checkout master 2>/dev/null && ".
-                       "LANG=C git branch -D '$branch' 2>/dev/null");
+            system("cd '$dest/$repo' && git checkout master 2>/dev/null && ".
+                       "git branch -D '$branch' 2>/dev/null");
             $exit = $? >> 8;
             $log->error("Failed deleting branch $branch of repo $repo: $exit")
                 if $exit;
@@ -670,7 +670,7 @@ sub sync_bunch {
             # target, we use /^deleting /x
             my $uuid = UUID::Random::generate();
             my $v = $log->is_debug ? "-v" : "";
-            $cmd = "LANG=C rsync --log-format=$uuid -${a}z $v --del --force ".
+            $cmd = "rsync --log-format=$uuid -${a}z $v --del --force ".
                 shell_quote("$source/$e")." .";
             my ($stdout, @result) = Capture::Tiny::capture_stdout(
                 sub { system($cmd) });
@@ -691,12 +691,12 @@ sub sync_bunch {
             if ($create_bare) {
                 $log->info("Initializing target repo $e (bare) ...");
                 $cmd = "mkdir ".shell_quote($e)." && cd ".shell_quote($e).
-                    " && LANG=C git init --bare";
+                    " && git init --bare";
                 system($cmd);
                 $exit = $? >> 8;
                 if ($exit) {
                     $log->warn("Git init failed, please check: $exit");
-                    $res{$e} = [500, "LANG=C git init --bare failed: $exit"];
+                    $res{$e} = [500, "git init --bare failed: $exit"];
                     next ENTRY;
                 }
                 $created++;
@@ -704,7 +704,7 @@ sub sync_bunch {
             } elsif (defined $create_bare) {
                 $log->info("Initializing target repo $e (non-bare) ...");
                 $cmd = "mkdir ".shell_quote($e)." && cd ".shell_quote($e).
-                    " && LANG=C git init";
+                    " && git init";
                 system($cmd);
                 $exit = $? >> 8;
                 if ($exit) {
@@ -737,7 +737,7 @@ sub sync_bunch {
         if ($backup && !$created) {
             $log->debug("Discarding changes in target repo $e ...");
             local $CWD = $e;
-            system "LANG=C git clean -f -d && LANG=C git checkout .";
+            system "git clean -f -d && git checkout .";
             # ignore error for now, let's go ahead and sync anyway
         }
 

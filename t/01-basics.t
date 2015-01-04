@@ -10,6 +10,7 @@ use File::Slurp::Tiny qw(read_file write_file);
 use File::Temp qw(tempdir);
 use File::Which;
 use Git::Bunch qw(check_bunch sync_bunch);
+use IPC::System::Locale qw(system backtick);
 use Probe::Perl;
 use String::ShellQuote;
 
@@ -89,7 +90,7 @@ test_gb(
              "repo1 is unclean (message)");
     },
 );
-system "cd src/bunch1/repo1 && LANG=C git commit -am 'commit2-repo1'";
+system "cd src/bunch1/repo1 && git commit -am 'commit2-repo1'";
 test_gb(
     sub     => "check_bunch",
     name    => "needs commit (committed)",
@@ -176,7 +177,7 @@ test_gb(
                 "repo $repo copied (.git exists)");
             is( read_file("sync/1/$repo/a", chomp=>1), "apple",
                 "repo $repo copied (working copy copied)");
-            like(`cd sync/1/$repo && LANG=C git log`, qr/commit1-$repo/i,
+            like(~~backtick("cd sync/1/$repo && git log"), qr/commit1-$repo/i,
                  "repo $repo copied (git log works)");
         }
     },
@@ -187,15 +188,15 @@ write_file "src/bunch1/file1", "foobar";
 write_file "src/bunch1/.nonrepo1/t", "tangerine";
 # delete
 unlink     "src/bunch1/repo1/a";
-system  "cd src/bunch1/repo1 && LANG=C git commit -am 'commit3-repo1'";
+system  "cd src/bunch1/repo1 && git commit -am 'commit3-repo1'";
 # add
 write_file "src/bunch1/repo1/e", "eggplant";
-system  "cd src/bunch1/repo1 && LANG=C git add e && LANG=C git commit -am 'commit4-repo1'";
+system  "cd src/bunch1/repo1 && git add e && git commit -am 'commit4-repo1'";
 # update
 write_file "src/bunch1/repo1/d/b", "blackberry";
-system  "cd src/bunch1/repo1 && LANG=C git commit -am 'commit5-repo1'";
+system  "cd src/bunch1/repo1 && git commit -am 'commit5-repo1'";
 # rename
-system  "cd src/bunch1/repo1 && LANG=C git mv k d/ && LANG=C git commit -am 'commit6-repo1'";
+system  "cd src/bunch1/repo1 && git mv k d/ && git commit -am 'commit6-repo1'";
 
 test_gb(
     sub     => "sync_bunch",
@@ -215,7 +216,7 @@ test_gb(
         ok(!(-e "sync/1/repo1/k"), "repo1: k moved (1)");
         is(read_file("sync/1/repo1/d/k", chomp=>1), "kangkung",
            "repo1: k moved (2)");
-        like(`cd sync/1/repo1 && LANG=C git log`,
+        like(~~backtick("cd sync/1/repo1 && git log"),
              qr/commit6.+commit5.+commit4.+commit3/s,
              "repo1: commits sync-ed");
         my %status = (
@@ -229,13 +230,13 @@ test_gb(
 );
 
 write_file "src/bunch1/repo2/s1", "strawberry";
-system  "cd src/bunch1/repo2 && LANG=C git branch b2";
-system  "cd src/bunch1/repo2 && LANG=C git add s1 && ".
-    "LANG=C git commit -am 'commit3-master-repo2'";
-system  "cd src/bunch1/repo2 && LANG=C git checkout b2";
+system  "cd src/bunch1/repo2 && git branch b2";
+system  "cd src/bunch1/repo2 && git add s1 && ".
+    "git commit -am 'commit3-master-repo2'";
+system  "cd src/bunch1/repo2 && git checkout b2";
 write_file "src/bunch1/repo2/s2", "spearmint";
-system  "cd src/bunch1/repo2 && LANG=C git add s2 && ".
-    "LANG=C git commit -am 'commit4-b2-repo2'";
+system  "cd src/bunch1/repo2 && git add s2 && ".
+    "git commit -am 'commit4-b2-repo2'";
 
 test_gb(
     sub     => "sync_bunch",
@@ -244,12 +245,12 @@ test_gb(
     status  => 200,
     test_res => sub {
         my ($res) = @_;
-        system "cd sync/1/repo2 && LANG=C git checkout master";
+        system "cd sync/1/repo2 && git checkout master";
         is(read_file("sync/1/repo2/s1", chomp=>1),
            "strawberry", "branch master: s1 added");
         ok(!(-e "sync/1/repo2/s2"), "branch master: s2 not added");
 
-        system "cd sync/1/repo2 && LANG=C git checkout b2";
+        system "cd sync/1/repo2 && git checkout b2";
         is(read_file("sync/1/repo2/s2", chomp=>1),
            "spearmint", "branch b2: s2 added");
         ok(!(-e "sync/1/repo2/s1"), "branch b2: s2 not added");
@@ -324,12 +325,12 @@ sub create_test_data {
     write_file "src/bunch1/repo1/d/b", "banana";
     write_file "src/bunch1/repo1/k", "kangkung";
     $CWD     = "src/bunch1/repo1";
-    system     "LANG=C git init";
+    system     "git init";
     # doesn't matter, what's needed is config --global?
-    #system     'LANG=C git config user.name nobody';
-    #system     'LANG=C git config user.email nobody@example.org';
-    system     "LANG=C git add .";
-    system     "LANG=C git commit -am 'commit1-repo1'";
+    #system     'git config user.name nobody';
+    #system     'git config user.email nobody@example.org';
+    system     "git add .";
+    system     "git commit -am 'commit1-repo1'";
     $CWD     = "../../..";
 
     mkdir      "src/bunch1/repo2";
@@ -337,11 +338,11 @@ sub create_test_data {
     mkdir      "src/bunch1/repo2/d";
     write_file "src/bunch1/repo2/d/b", "blueberry";
     $CWD     = "src/bunch1/repo2";
-    system     "LANG=C git init";
-    system     "LANG=C git add .";
-    system     "LANG=C git commit -am 'commit1-repo2'";
+    system     "git init";
+    system     "git add .";
+    system     "git commit -am 'commit1-repo2'";
     write_file   "a", "apple";
-    system     "LANG=C git commit -am 'commit2-repo2'";
+    system     "git commit -am 'commit2-repo2'";
     $CWD     = "../../..";
 }
 
