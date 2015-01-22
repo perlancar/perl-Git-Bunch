@@ -1,19 +1,22 @@
 #!perl
 
+# DATE
+# VERSION
+
 use 5.010001;
 use strict;
 use warnings;
 
-# VERSION
+use Perinci::CmdLine::Any -prefer_lite=>1;
 
-use Perinci::CmdLine;
-Perinci::CmdLine->new(
+Perinci::CmdLine::Any->new(
     url => '/Git/Bunch/',
     subcommands => {
         check  => { url => '/Git/Bunch/check_bunch'  },
         sync   => { url => '/Git/Bunch/sync_bunch'   },
         exec   => { url => '/Git/Bunch/exec_bunch'   },
-    }
+    },
+    log => 1,
 )->run;
 
 1;
