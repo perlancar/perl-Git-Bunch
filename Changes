@@ -1,5 +1,11 @@
 Revision history for Git-Bunch
 
+0.44    2015-01-22 (PERLANCAR)
+
+	- Switch CLI to Perinci::CmdLine::Any (-prefer_lite) which now
+	  already has progress bar feature too.
+
+
 0.43    2015-01-04 (PERLANCAR)
 
 	- Second attempt to force C locale, by using IPC::System::Locale
