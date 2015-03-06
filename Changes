@@ -1,5 +1,11 @@
 Revision history for Git-Bunch
 
+0.45    2015-03-06 (PERLANCAR) (unreleased)
+
+	- check: Put detailed result in result metadata to avoid being blanked
+          by Perinci::CmdLine.
+
+
 0.44    2015-01-22 (PERLANCAR)
 
 	- Switch CLI to Perinci::CmdLine::Any (-prefer_lite) which now
