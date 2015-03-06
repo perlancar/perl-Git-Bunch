@@ -363,8 +363,8 @@ sub check_bunch {
     $progress->finish if $progress;
     [200,
      $has_unclean ? "Some repos unclean" : "All repos clean",
-     \%res,
-     {"cmdline.result" => ''}];
+     "",
+     {'func.res'=>\%res}];
 }
 
 sub _sync_repo {
