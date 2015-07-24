@@ -1,9 +1,14 @@
 Revision history for Git-Bunch
 
-0.45    2015-03-06 (PERLANCAR) (unreleased)
+0.45    2015-07-25 (PERLANCAR)
 
 	- check: Also put detailed result in result metadata to avoid being
           blanked by Perinci::CmdLine.
+
+        - Add sort choice: db-commit-timestamp (or -db-commit-timestamp). This
+          method looks for commit timestamps in $source/repos.db, which can be
+          cheaper compared to stat-ing hundreds of .git/commit-timestamp. Your
+          post-commit script must update this SQLite database.
 
 
 0.44    2015-01-22 (PERLANCAR)
