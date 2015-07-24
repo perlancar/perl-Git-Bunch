@@ -37,17 +37,42 @@ our %common_args_spec = (
         summary      => 'Order entries in bunch',
         description  => <<'_',
 
-`commit-timestamp` (and `-commit-timestamp`) compares the timestamp of
+If sorting is enabled, the repos will be sorted first by some ordering. One
+use-case for this is to allow more recently committed-to repos to be processed
+first (using `-commit-timestamp` or `-db-commit-timestamp`).
+
+`db-commit-timestamp` (or `-db-commit-timestamp`) reads SQLite database file
+`repos.db` in the source directory and to get last commit timestamp information
+(in the `repos` table, the `commit_timestamp` column). You will need to create
+and maintain this database, e.g. in your post-commit script. Repos or dirs not
+having the last commit information in the database will be processed later. This
+method is faster than `commit-timestamp` (or `-commit-timestamp`, see next
+paragraph) if your source directory contains lots (e.g. hundreds or thousands)
+of repos because you avoid having to stat() each `.git/commit-timestamp` file in
+each repo.
+
+`commit-timestamp` (or `-commit-timestamp`) compares the timestamp of
 `.git/commit-timestamp` file in each repo. Repos or dirs not having this file
 will be processed later. You can touch these `.git/commit-timestamp` files in
 your post-commit script, for example. This allows sorting recently committed
 repos more cheaply (compared to doing `git log -1`).
+
+`mtime` (or `-mtime`) compares the timestamp or the repo dirs. This might not
+give the result you want if you expect to process more recently updated repos
+first, because files in a repo might be updated in the subdirectories of the
+repo instead of in the top-level dir.
+
+`name` (or `-name`) simply compares the repos' names. This is one of the fastest
+methods.
+
+`rand` randomizes the order of repos, so you get different ordering in each run.
 
 _
         schema       => ['str' => {
             default => '-commit-timestamp',
             in      => [qw/name -name mtime -mtime rand
                            commit-timestamp -commit-timestamp
+                           db-commit-timestamp -db-commit-timestamp
                           /],
         }],
     },
@@ -161,7 +186,6 @@ sub _check_common_args {
     my $sort = $args->{sort} // "-mtime";
     my $sortsub;
     if (!$sort) {
-        $sortsub = sub { 1 };
     } elsif ($sort eq '-mtime') {
         $sortsub = sub {((-M $a)//0) <=> ((-M $b)//0)};
     } elsif ($sort eq 'mtime') {
@@ -180,6 +204,25 @@ sub _check_common_args {
             return  1 if !$ts_a;
             return -1 if !$ts_b;
             return $ts_a <=> $ts_b;
+        };
+    } elsif ($sort =~ /^(-)db-commit-timestamp$/) {
+        my $rev = $1;
+        my $db_path = "$args->{source}/repos.db";
+        (-f $db_path) or die "Can't find '$db_path'";
+        require DBI;
+        my $dbh = DBI->connect("dbi:SQLite:dbname=$db_path", "", "",
+                               {RaiseError=>1});
+        my %pos; # key=repo name
+        my $sth = $dbh->prepare(
+            "SELECT name FROM repos ORDER BY commit_timestamp".
+                ($rev ? " DESC" : ""));
+        $sth->execute;
+        my $i = 0;
+        while (my ($name) = $sth->fetchrow_array) {
+            $pos{$name} = $i++;
+        }
+        $sortsub = sub {
+            ($pos{$a} // 999_999) <=> ($pos{$b} // 999_999)
         };
     } else { # rand
         $sortsub = sub {int(3*rand())-1};
@@ -309,7 +352,9 @@ sub check_bunch {
     my %res;
     local $CWD = $source;
 
-    my @entries = sort $sortsub grep {-d} <*>;
+    my @entries;
+    @entries = grep {-d} <*>;
+    @entries = sort $sortsub @entries if $sortsub;
     #$log->tracef("entries: %s", \@entries);
 
     my $i = 0;
@@ -645,7 +690,8 @@ sub sync_bunch {
     {
         local $CWD = $source;
         opendir my($d), ".";
-        @entries = sort $sortsub readdir($d);
+        @entries = readdir($d);
+        @entries = sort $sortsub @entries if $sortsub;
     }
     #$log->tracef("entries: %s", \@entries);
 
@@ -794,7 +840,8 @@ sub exec_bunch {
     local $CWD = $source;
     my %res;
     my $i = 0;
-    my @entries = sort $sortsub grep {-d} <*>;
+    my @entries = grep {-d} <*>;
+    @entries = sort $sortsub @entries if $sortsub;
     #$log->tracef("entries: %s", \@entries);
   REPO:
     for my $repo (@entries) {
