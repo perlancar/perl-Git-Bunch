@@ -6,7 +6,6 @@ package Git::Bunch;
 use 5.010001;
 use strict;
 use warnings;
-use experimental 'smartmatch';
 use Log::Any '$log';
 
 use IPC::System::Locale qw(system backtick);
@@ -242,6 +241,8 @@ sub _is_repo {
 
 # return true if entry should be skipped
 sub _skip_process_entry {
+    use experimental 'smartmatch';
+
     my ($e, $args, $dir, $skip_non_repo) = @_;
 
     return 1 if $e eq '.' || $e eq '..';
@@ -335,6 +336,8 @@ _
     },
 };
 sub check_bunch {
+    use experimental 'smartmatch';
+
     my %args = @_;
     my $res;
 
@@ -413,6 +416,8 @@ sub check_bunch {
 }
 
 sub _sync_repo {
+    use experimental 'smartmatch';
+
     my ($src, $dest, $repo, $opts) = @_;
     my $exit;
 
@@ -654,6 +659,7 @@ _
     },
 };
 sub sync_bunch {
+    use experimental 'smartmatch';
     require Capture::Tiny;
     require UUID::Random;
 
