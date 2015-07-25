@@ -409,7 +409,7 @@ sub check_bunch {
     [200,
      $has_unclean ? "Some repos unclean" : "All repos clean",
      \%res,
-     {'func.res'=>\%res}];
+     {'cmdline.result'=>'', 'func.res'=>\%res}];
 }
 
 sub _sync_repo {
