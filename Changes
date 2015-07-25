@@ -1,5 +1,11 @@
 Revision history for Git-Bunch
 
+0.46    2015-07-25 (PERLANCAR)
+
+	- [Bugfix] [Regression] Make 'gitbunch check' CLI output nothing by
+	  default, like before.
+
+
 0.45    2015-07-25 (PERLANCAR)
 
 	- check: Also put detailed result in result metadata to avoid being
