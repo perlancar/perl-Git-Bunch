@@ -8,7 +8,7 @@ use strict;
 use warnings;
 use Log::Any '$log';
 
-use IPC::System::Locale qw(system backtick);
+use IPC::System::Locale 'system', 'backtick', -log=>1;
 use Cwd ();
 use File::chdir;
 use File::Path qw(make_path);

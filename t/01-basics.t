@@ -10,7 +10,7 @@ use File::Slurp::Tiny qw(read_file write_file);
 use File::Temp qw(tempdir);
 use File::Which;
 use Git::Bunch qw(check_bunch sync_bunch);
-use IPC::System::Locale qw(system backtick);
+use IPC::System::Locale 'system', 'backtick', -log=>1;
 use Probe::Perl;
 use String::ShellQuote;
 
