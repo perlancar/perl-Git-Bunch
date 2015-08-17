@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.47    2015-08-17 (PERLANCAR)
+
+	- No functional changes.
+
+	- Switch from Log::Any to Log::Any::IfLOG.
+
+
 0.46    2015-07-25 (PERLANCAR)
 
 	- [Bugfix] [Regression] Make 'gitbunch check' CLI output nothing by
