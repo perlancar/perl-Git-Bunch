@@ -6,7 +6,7 @@ package Git::Bunch;
 use 5.010001;
 use strict;
 use warnings;
-use Log::Any '$log';
+use Log::Any::IfLOG '$log';
 
 use IPC::System::Locale 'system', 'backtick', -log=>1;
 use Cwd ();
