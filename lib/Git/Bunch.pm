@@ -606,6 +606,17 @@ are not owned by root), turn this option on.
 
 _
         },
+        rsync_del => {
+            summary => 'Whether to use --del rsync option',
+            schema => 'bool',
+            description => <<'_',
+
+When rsync-ing non-repos, by default `--del` option is not used for more safety
+because rsync is a one-way action. To add rsync `--del` option, enable this
+option.
+
+_
+        },
         create_bare_target => {
             summary      => 'Whether to create bare git repo '.
                 'when target does not exist',
@@ -722,7 +733,8 @@ sub sync_bunch {
             # target, we use /^deleting /x
             my $uuid = UUID::Random::generate();
             my $v = $log->is_debug ? "-v" : "";
-            $cmd = "rsync --log-format=$uuid -${a}z $v --del --force ".
+            my $del = $args{rsync_del} ? "--del" : "";
+            $cmd = "rsync --log-format=$uuid -${a}z $v $del --force ".
                 shell_quote("$source/$e")." .";
             my ($stdout, @result) = Capture::Tiny::capture_stdout(
                 sub { system($cmd) });
