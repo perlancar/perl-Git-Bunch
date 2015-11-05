@@ -1,5 +1,11 @@
 Revision history for Git-Bunch
 
+0.50    2015-11-05 (PERLANCAR)
+
+	- [Incompatible change] sync: Now defaults to not using rsync --del
+	  option for more safety, unless --rsync-del option is given.
+
+
 0.49    2015-09-09 (PERLANCAR)
 
 	- No functional changes.
