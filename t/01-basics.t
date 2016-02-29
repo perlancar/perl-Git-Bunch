@@ -3,7 +3,7 @@
 use 5.010;
 use strict;
 use warnings;
-use Test::More 0.96;
+use Test::More 0.98;
 
 use File::chdir;
 use File::Slurp::Tiny qw(read_file write_file);
