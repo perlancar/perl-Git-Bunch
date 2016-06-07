@@ -8,7 +8,7 @@ use strict;
 use warnings;
 use Log::Any::IfLOG '$log';
 
-use IPC::System::Locale 'system', 'backtick', -log=>1;
+use IPC::System::Options 'system', 'readpipe', -log=>1, -lang=>'C';
 use Cwd ();
 use File::chdir;
 use File::Path qw(make_path);
@@ -373,7 +373,7 @@ sub check_bunch {
                               "Checking repo $repo ...")
             if $progress;
 
-        my $output = backtick("git status 2>&1");
+        my $output = readpipe("git status 2>&1");
         my $exit = $? >> 8;
         if ($exit == 0 && $output =~ /nothing to commit/) {
             $log->info("$repo is clean");
@@ -427,7 +427,7 @@ sub _sync_repo {
     my %dest_heads; # last revisions for each branch
 
     local $CWD = "$src/$repo";
-    @src_branches = map {(/^[* ] (.+)/, $1)[-1]} backtick("git branch");
+    @src_branches = map {(/^[* ] (.+)/, $1)[-1]} readpipe("git branch");
     $exit = $? >> 8;
     if ($exit) {
         $log->error("Can't list branches on src repo $src/$repo: $exit");
@@ -436,7 +436,7 @@ sub _sync_repo {
     $log->debugf("Source branches: %s", \@src_branches);
 
     for my $branch (@src_branches) {
-        my $output = backtick("git log -1 '$branch'");
+        my $output = readpipe("git log -1 '$branch'");
         $exit = $? >> 8;
         if ($exit) {
             $log->error("Can't find out head for branch $branch on src repo ".
@@ -454,14 +454,14 @@ sub _sync_repo {
 
     $CWD = "$dest/$repo";
     my $is_bare = _is_repo(".") == 2;
-    @dest_branches = map {(/^[* ] (.+)/, $1)[-1]} backtick("git branch");
+    @dest_branches = map {(/^[* ] (.+)/, $1)[-1]} readpipe("git branch");
     if ($exit) {
         $log->error("Can't list branches on dest repo $repo: $exit");
         return [500, "Can't list branches on dest: $exit"];
     }
     $log->debugf("Dest branches: %s", \@dest_branches);
     for my $branch (@dest_branches) {
-        my $output = backtick("git log -1 '$branch'");
+        my $output = readpipe("git log -1 '$branch'");
         $exit = $? >> 8;
         if ($exit) {
             $log->error("Can't find out head for branch $branch on dest repo ".
@@ -498,13 +498,13 @@ sub _sync_repo {
         $log->info("Updating branch $branch of repo $repo ...")
             if @src_branches > 1;
         if ($is_bare) {
-            $output = backtick(
+            $output = readpipe(
                 join("",
                      "cd '$src/$repo'; ",
                      "git push '$dest/$repo' '$branch' 2>&1",
                  ));
         } else {
-            $output = backtick(
+            $output = readpipe(
                 join("",
                      "cd '$dest/$repo'; ",
                      ($branch ~~ @dest_branches ? "":"git branch '$branch'; "),
@@ -539,7 +539,7 @@ sub _sync_repo {
         $log->debug("Result of 'git pull/push' for branch $branch of repo ".
                         "$repo: exit=$exit, output=$output");
 
-        $output = backtick("cd '$dest/$repo'; ".
+        $output = readpipe("cd '$dest/$repo'; ".
                                "git fetch --tags '$src/$repo' 2>&1");
         $exit = $? >> 8;
         if ($exit != 0) {

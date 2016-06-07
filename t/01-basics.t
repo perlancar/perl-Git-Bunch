@@ -10,7 +10,7 @@ use File::Slurp::Tiny qw(read_file write_file);
 use File::Temp qw(tempdir);
 use File::Which;
 use Git::Bunch qw(check_bunch sync_bunch);
-use IPC::System::Locale 'system', 'backtick', -log=>1;
+use IPC::System::Options 'system', 'readpipe', -log=>1, -lang=>'C';
 use Probe::Perl;
 use String::ShellQuote;
 
@@ -177,7 +177,7 @@ test_gb(
                 "repo $repo copied (.git exists)");
             is( read_file("sync/1/$repo/a", chomp=>1), "apple",
                 "repo $repo copied (working copy copied)");
-            like(~~backtick("cd sync/1/$repo && git log"), qr/commit1-$repo/i,
+            like(~~readpipe("cd sync/1/$repo && git log"), qr/commit1-$repo/i,
                  "repo $repo copied (git log works)");
         }
     },
@@ -216,7 +216,7 @@ test_gb(
         ok(!(-e "sync/1/repo1/k"), "repo1: k moved (1)");
         is(read_file("sync/1/repo1/d/k", chomp=>1), "kangkung",
            "repo1: k moved (2)");
-        like(~~backtick("cd sync/1/repo1 && git log"),
+        like(~~readpipe("cd sync/1/repo1 && git log"),
              qr/commit6.+commit5.+commit4.+commit3/s,
              "repo1: commits sync-ed");
         my %status = (
