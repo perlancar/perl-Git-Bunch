@@ -12,6 +12,7 @@ use IPC::System::Options 'system', 'readpipe', -log=>1, -lang=>'C';
 use Cwd ();
 use File::chdir;
 use File::Path qw(make_path);
+use POSIX qw(strftime);
 use String::ShellQuote;
 
 require Exporter;
@@ -144,6 +145,10 @@ our %target_arg_spec = (
         pos          => 1,
     },
 );
+
+sub _fmt_time {
+    strftime("%Y-%m-%dT%H:%M:%S", localtime shift);
+}
 
 sub _check_common_args {
     my ($args, $requires_target) = @_;
@@ -419,6 +424,88 @@ sub check_bunch {
      $has_unclean ? "Some repos unclean" : "All repos clean",
      \%res,
      {'cmdline.result'=>'', 'func.res'=>\%res}];
+}
+
+$SPEC{list_bunch_contents} = {
+    v             => 1.1,
+    summary       =>
+        'List contents inside gitbunch directory',
+    description   => <<'_',
+
+Will list each repo or non-repo dir/file.
+
+_
+    args          => {
+        %common_args_spec,
+        detail => {
+            summary =>
+                'Show detailed record for each entry instead of just its name',
+            schema => 'bool',
+            cmdline_aliases => {l => {}},
+        },
+    },
+    features => {
+    },
+};
+sub list_bunch_contents {
+    use experimental 'smartmatch';
+    require DBI;
+
+    my %args = @_;
+
+    # XXX schema
+    my $res = _check_common_args(\%args);
+    return $res unless $res->[0] == 200;
+    my $sortsub = $res->[3]{sortsub};
+    my $source = $args{source};
+
+    local $CWD = $source;
+
+    my %lctimes;
+    {
+        last unless -f "repos.db";
+        my $dbh = DBI->connect("dbi:SQLite:dbname=repos.db", "", "",
+                               {RaiseError=>1});
+        my $sth = $dbh->prepare("SELECT name,commit_timestamp FROM repos");
+        $sth->execute;
+        while (my ($n, $cts) = $sth->fetchrow_array) {
+            $lctimes{$n} = $cts;
+        }
+    }
+
+    my @entries;
+    @entries = do {
+        opendir my ($dh), "." or die "Can't read dir '$source': $!";
+        readdir($dh);
+    };
+    @entries = sort $sortsub @entries if $sortsub;
+    #$log->tracef("entries: %s", \@entries);
+
+    my @res;
+  ENTRY:
+    for my $entry (@entries) {
+        next ENTRY if _skip_process_entry($entry, \%args, ".");
+        my $rec = { name => $entry };
+        #my @st = stat($entry);
+        if (-d $entry) {
+            $rec->{type} = $entry =~ /\A\./ ? 'd' : 'r';
+            #$rec->{mtime} = $st[9];
+        } else {
+            $rec->{type} = 'f';
+            #$rec->{mtime} = $st[9];
+        }
+        $rec->{lctime} = _fmt_time($lctimes{$entry})
+            if $lctimes{$entry};
+        push @res, $rec;
+    }
+
+    my %resmeta;
+    if ($args{detail}) {
+        $resmeta{'table.fields'} = [qw/name type lctime/];
+    } else {
+        @res = map { $_->{name} } @res;
+    }
+    [200, "OK", \@res, \%resmeta];
 }
 
 sub _sync_repo {
