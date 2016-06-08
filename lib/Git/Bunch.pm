@@ -333,6 +333,7 @@ _
     },
     features => {
         progress => 1,
+        dry_run => 1,
     },
 };
 sub check_bunch {
@@ -372,6 +373,11 @@ sub check_bunch {
                           message =>
                               "Checking repo $repo ...")
             if $progress;
+
+        if ($args{-dry_run}) {
+            $log->infof("[DRY] checking status of repo %s", $repo);
+            next REPO;
+        }
 
         my $output = readpipe("git status 2>&1");
         my $exit = $? >> 8;
