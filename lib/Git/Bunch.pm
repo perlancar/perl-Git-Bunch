@@ -41,9 +41,9 @@ use-case for this is to allow more recently committed-to repos to be processed
 first (using `-commit-timestamp` or `-db-commit-timestamp`).
 
 `db-commit-timestamp` (or `-db-commit-timestamp`) reads SQLite database file
-`repos.db` in the source directory and to get last commit timestamp information
-(in the `repos` table, the `commit_timestamp` column). You will need to create
-and maintain this database, e.g. in your post-commit script. Repos or dirs not
+`repos.db` in the source directory to get last commit timestamp information (in
+the `repos` table, the `commit_timestamp` column). You will need to create and
+maintain this database, e.g. in your post-commit script. Repos or dirs not
 having the last commit information in the database will be processed later. This
 method is faster than `commit-timestamp` (or `-commit-timestamp`, see next
 paragraph) if your source directory contains lots (e.g. hundreds or thousands)
