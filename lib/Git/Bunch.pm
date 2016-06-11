@@ -26,55 +26,12 @@ $SPEC{":package"} = {
     summary => 'Manage gitbunch directory (directory which contain git repos)',
 };
 
-our %common_args_spec = (
+our %common_args = (
     source           => {
         summary      => 'Directory to check',
         schema       => ['str*'],
         req          => 1,
         pos          => 0,
-    },
-    sort             => {
-        summary      => 'Order entries in bunch',
-        description  => <<'_',
-
-If sorting is enabled, the repos will be sorted first by some ordering. One
-use-case for this is to allow more recently committed-to repos to be processed
-first (using `-commit-timestamp` or `-db-commit-timestamp`).
-
-`db-commit-timestamp` (or `-db-commit-timestamp`) reads SQLite database file
-`repos.db` in the source directory to get last commit timestamp information (in
-the `repos` table, the `commit_timestamp` column). You will need to create and
-maintain this database, e.g. in your post-commit script. Repos or dirs not
-having the last commit information in the database will be processed later. This
-method is faster than `commit-timestamp` (or `-commit-timestamp`, see next
-paragraph) if your source directory contains lots (e.g. hundreds or thousands)
-of repos because you avoid having to stat() each `.git/commit-timestamp` file in
-each repo.
-
-`commit-timestamp` (or `-commit-timestamp`) compares the timestamp of
-`.git/commit-timestamp` file in each repo. Repos or dirs not having this file
-will be processed later. You can touch these `.git/commit-timestamp` files in
-your post-commit script, for example. This allows sorting recently committed
-repos more cheaply (compared to doing `git log -1`).
-
-`mtime` (or `-mtime`) compares the timestamp or the repo dirs. This might not
-give the result you want if you expect to process more recently updated repos
-first, because files in a repo might be updated in the subdirectories of the
-repo instead of in the top-level dir.
-
-`name` (or `-name`) simply compares the repos' names. This is one of the fastest
-methods.
-
-`rand` randomizes the order of repos, so you get different ordering in each run.
-
-_
-        schema       => ['str' => {
-            default => '-commit-timestamp',
-            in      => [qw/name -name mtime -mtime rand
-                           commit-timestamp -commit-timestamp
-                           db-commit-timestamp -db-commit-timestamp
-                          /],
-        }],
     },
     include_repos    => {
         summary      => 'Specific git repos to sync, if not specified '.
@@ -137,7 +94,19 @@ _
     },
 );
 
-our %target_arg_spec = (
+our %sort_args = (
+    sort             => {
+        summary      => 'Order entries',
+        schema       => ['str' => {
+            in      => [qw/name -name
+                           status_time -status_time
+                           commit_time -commit_time
+                          /],
+        }],
+    },
+);
+
+our %target_args = (
     target           => {
         summary      => 'Destination bunch',
         schema       => ['str*'],
@@ -186,11 +155,14 @@ sub _check_common_args {
         return $res unless $res->[0] == 200;
     }
 
-    # XXX rand is not proper shuffle
-    my $sort = $args->{sort} // "-mtime";
+}
+
+sub _sort {
+    my ($entries, $args) = @_;
+
+    my $sort = $args->{sort} or return;
     my $sortsub;
-    if (!$sort) {
-    } elsif ($sort eq '-mtime') {
+    if ($sort eq '-mtime') {
         $sortsub = sub {((-M $a)//0) <=> ((-M $b)//0)};
     } elsif ($sort eq 'mtime') {
         $sortsub = sub {((-M $b)//0) <=> ((-M $a)//0)};
@@ -198,19 +170,8 @@ sub _check_common_args {
         $sortsub = sub {$b cmp $a};
     } elsif ($sort eq 'name') {
         $sortsub = sub {$a cmp $b};
-    } elsif ($sort =~ /^(-)commit-timestamp$/) {
-        my $rev = $1;
-        $sortsub = sub {
-            my $ts_file = ".git/.commit-timestamp";
-            my $ts_a = (-M "$a/$ts_file");
-            my $ts_b = (-M "$b/$ts_file");
-            return  0 if !$ts_a && !$ts_b;
-            return  1 if !$ts_a;
-            return -1 if !$ts_b;
-            return $ts_a <=> $ts_b;
-        };
-    } elsif ($sort =~ /^(-)db-commit-timestamp$/) {
-        my $rev = $1;
+    } elsif ($sort =~ /^(-)?(status_time|commit_time)$/) {
+        my ($rev, $column) = ($1, $2);
         my $db_path = "$args->{source}/repos.db";
         (-f $db_path) or die "Can't find '$db_path'";
         require DBI;
@@ -218,7 +179,7 @@ sub _check_common_args {
                                {RaiseError=>1});
         my %pos; # key=repo name
         my $sth = $dbh->prepare(
-            "SELECT name FROM repos ORDER BY commit_timestamp".
+            "SELECT name FROM repos ORDER BY $column".
                 ($rev ? " DESC" : ""));
         $sth->execute;
         my $i = 0;
@@ -329,7 +290,7 @@ Will die if can't chdir into bunch or git repository.
 
 _
     args          => {
-        %common_args_spec,
+        %common_args,
     },
     deps => {
         all => [
@@ -436,7 +397,8 @@ Will list each repo or non-repo dir/file.
 
 _
     args          => {
-        %common_args_spec,
+        %common_args,
+        %sort_args,
         detail => {
             summary =>
                 'Show detailed record for each entry instead of just its name',
@@ -679,8 +641,8 @@ For all other non-git repos, will simply synchronize by one-way rsync.
 
 _
     args          => {
-        %common_args_spec,
-        %target_arg_spec,
+        %common_args,
+        %target_args,
         delete_branch    => {
             summary      => 'Whether to delete branches in dest repos '.
                 'not existing in source repos',
@@ -925,7 +887,7 @@ command.
 
 _
     args          => {
-        %common_args_spec,
+        %common_args,
         command   => {
             summary  => 'Command to execute',
             schema   => ['str*'],
