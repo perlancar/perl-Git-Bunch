@@ -6,7 +6,7 @@ use warnings;
 use Test::More 0.98;
 
 use File::chdir;
-use File::Slurp::Tiny qw(read_file write_file);
+use File::Slurper qw(read_text write_text);
 use File::Temp qw(tempdir);
 use File::Which;
 use Git::Bunch qw(check_bunch sync_bunch);
@@ -77,7 +77,7 @@ test_gb(
 );
 rmdir "src/bunch1/nonrepo2";
 
-write_file("src/bunch1/repo1/d/b", "");
+write_text("src/bunch1/repo1/d/b", "");
 test_gb(
     sub     => "check_bunch",
     name    => "needs commit",
@@ -102,7 +102,7 @@ test_gb(
     },
 );
 
-write_file("src/bunch1/repo1/c", "cherry");
+write_text("src/bunch1/repo1/c", "cherry");
 test_gb(
     sub     => "check_bunch",
     name    => "has untracked files",
@@ -167,15 +167,15 @@ test_gb(
     test_res => sub {
         my ($res) = @_;
         ok((-d "sync/1"), "target directory created") or return;
-        is(read_file("sync/1/file1", chomp=>1), "foo", "files copied");
+        is(read_text("sync/1/file1", chomp=>1), "foo", "files copied");
         ok((-d "sync/1/.nonrepo1"), "nongit dotdir copied (exists)");
-        is(read_file("sync/1/.nonrepo1/t", chomp=>1), "tea",
+        is(read_text("sync/1/.nonrepo1/t", chomp=>1), "tea",
            "nongit dotdir copied (content)");
         for my $repo (qw(repo1 repo2)) {
             ok( (-d "sync/1/$repo"), "repo $repo copied (exists)");
             ok( (-d "sync/1/$repo/.git"),
                 "repo $repo copied (.git exists)");
-            is( read_file("sync/1/$repo/a", chomp=>1), "apple",
+            is( read_text("sync/1/$repo/a", chomp=>1), "apple",
                 "repo $repo copied (working copy copied)");
             like(~~readpipe("cd sync/1/$repo && git log"), qr/commit1-$repo/i,
                  "repo $repo copied (git log works)");
@@ -184,16 +184,16 @@ test_gb(
 );
 
 # different length or rsync by default ignores it
-write_file "src/bunch1/file1", "foobar";
-write_file "src/bunch1/.nonrepo1/t", "tangerine";
+write_text "src/bunch1/file1", "foobar";
+write_text "src/bunch1/.nonrepo1/t", "tangerine";
 # delete
 unlink     "src/bunch1/repo1/a";
 system  "cd src/bunch1/repo1 && git commit -am 'commit3-repo1'";
 # add
-write_file "src/bunch1/repo1/e", "eggplant";
+write_text "src/bunch1/repo1/e", "eggplant";
 system  "cd src/bunch1/repo1 && git add e && git commit -am 'commit4-repo1'";
 # update
-write_file "src/bunch1/repo1/d/b", "blackberry";
+write_text "src/bunch1/repo1/d/b", "blackberry";
 system  "cd src/bunch1/repo1 && git commit -am 'commit5-repo1'";
 # rename
 system  "cd src/bunch1/repo1 && git mv k d/ && git commit -am 'commit6-repo1'";
@@ -205,16 +205,16 @@ test_gb(
     status  => 200,
     test_res => sub {
         my ($res) = @_;
-        is(read_file("sync/1/file1", chomp=>1), "foobar", "files updated");
-        is(read_file("sync/1/.nonrepo1/t", chomp=>1), "tangerine",
+        is(read_text("sync/1/file1", chomp=>1), "foobar", "files updated");
+        is(read_text("sync/1/.nonrepo1/t", chomp=>1), "tangerine",
            "nongit dotdir updated");
         ok(!(-e "sync/1/repo1/a"), "repo1: a deleted");
-        is(read_file("sync/1/repo1/e", chomp=>1), "eggplant",
+        is(read_text("sync/1/repo1/e", chomp=>1), "eggplant",
            "repo1: e added");
-        is(read_file("sync/1/repo1/d/b", chomp=>1), "blackberry",
+        is(read_text("sync/1/repo1/d/b", chomp=>1), "blackberry",
            "repo1: b updated");
         ok(!(-e "sync/1/repo1/k"), "repo1: k moved (1)");
-        is(read_file("sync/1/repo1/d/k", chomp=>1), "kangkung",
+        is(read_text("sync/1/repo1/d/k", chomp=>1), "kangkung",
            "repo1: k moved (2)");
         like(~~readpipe("cd sync/1/repo1 && git log"),
              qr/commit6.+commit5.+commit4.+commit3/s,
@@ -229,12 +229,12 @@ test_gb(
     },
 );
 
-write_file "src/bunch1/repo2/s1", "strawberry";
+write_text "src/bunch1/repo2/s1", "strawberry";
 system  "cd src/bunch1/repo2 && git branch b2";
 system  "cd src/bunch1/repo2 && git add s1 && ".
     "git commit -am 'commit3-master-repo2'";
 system  "cd src/bunch1/repo2 && git checkout b2";
-write_file "src/bunch1/repo2/s2", "spearmint";
+write_text "src/bunch1/repo2/s2", "spearmint";
 system  "cd src/bunch1/repo2 && git add s2 && ".
     "git commit -am 'commit4-b2-repo2'";
 
@@ -246,12 +246,12 @@ test_gb(
     test_res => sub {
         my ($res) = @_;
         system "cd sync/1/repo2 && git checkout master";
-        is(read_file("sync/1/repo2/s1", chomp=>1),
+        is(read_text("sync/1/repo2/s1", chomp=>1),
            "strawberry", "branch master: s1 added");
         ok(!(-e "sync/1/repo2/s2"), "branch master: s2 not added");
 
         system "cd sync/1/repo2 && git checkout b2";
-        is(read_file("sync/1/repo2/s2", chomp=>1),
+        is(read_text("sync/1/repo2/s2", chomp=>1),
            "spearmint", "branch b2: s2 added");
         ok(!(-e "sync/1/repo2/s1"), "branch b2: s2 not added");
     },
@@ -316,14 +316,14 @@ sub create_test_data {
     mkdir      "src";
     mkdir      "src/bunch1";
     mkdir      "src/bunch1/.nonrepo1";
-    write_file "src/bunch1/.nonrepo1/t", "tea";
-    write_file "src/bunch1/file1", "foo";
+    write_text "src/bunch1/.nonrepo1/t", "tea";
+    write_text "src/bunch1/file1", "foo";
 
     mkdir      "src/bunch1/repo1";
-    write_file "src/bunch1/repo1/a", "apple";
+    write_text "src/bunch1/repo1/a", "apple";
     mkdir      "src/bunch1/repo1/d";
-    write_file "src/bunch1/repo1/d/b", "banana";
-    write_file "src/bunch1/repo1/k", "kangkung";
+    write_text "src/bunch1/repo1/d/b", "banana";
+    write_text "src/bunch1/repo1/k", "kangkung";
     $CWD     = "src/bunch1/repo1";
     system     "git init";
     # doesn't matter, what's needed is config --global?
@@ -334,14 +334,14 @@ sub create_test_data {
     $CWD     = "../../..";
 
     mkdir      "src/bunch1/repo2";
-    write_file "src/bunch1/repo2/a", "avocado";
+    write_text "src/bunch1/repo2/a", "avocado";
     mkdir      "src/bunch1/repo2/d";
-    write_file "src/bunch1/repo2/d/b", "blueberry";
+    write_text "src/bunch1/repo2/d/b", "blueberry";
     $CWD     = "src/bunch1/repo2";
     system     "git init";
     system     "git add .";
     system     "git commit -am 'commit1-repo2'";
-    write_file   "a", "apple";
+    write_text   "a", "apple";
     system     "git commit -am 'commit2-repo2'";
     $CWD     = "../../..";
 }

@@ -428,7 +428,7 @@ sub list_bunch_contents {
         last unless -f "repos.db";
         my $dbh = DBI->connect("dbi:SQLite:dbname=repos.db", "", "",
                                {RaiseError=>1});
-        my $sth = $dbh->prepare("SELECT name,commit_timestamp FROM repos");
+        my $sth = $dbh->prepare("SELECT name,commit_time FROM repos");
         $sth->execute;
         while (my ($n, $cts) = $sth->fetchrow_array) {
             $lctimes{$n} = $cts;
