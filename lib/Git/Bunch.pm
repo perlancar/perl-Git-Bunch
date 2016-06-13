@@ -192,6 +192,12 @@ sub _skip_process_entry {
 
     my ($e, $args, $dir, $skip_non_repo) = @_;
 
+    # skip special files
+    if ($e->{name} =~ /\A(repos\.db|\.gitbunch-sync-timestamp)\z/) {
+        $log->debug("Skipped $e->{name} (special files)");
+        return 1;
+    }
+
     my $is_repo = $e->{type} eq 'r';
 
     if (defined $args->{repo}) {
@@ -593,7 +599,6 @@ sub _sync_repo {
                                  ^Merge \s made \s by \s recursive|
                                  ^Merge \s made \s by \s the \s 'recursive'|
                                 /mx) {
-            # XXX touch
             $log->warn("Branch $branch of repo $repo updated")
                 if @src_branches > 1;
             $log->warn("Repo $repo updated")
@@ -731,6 +736,7 @@ _
         all => [
             {prog => 'git'},
             {prog => 'rsync'},
+            {prog => 'touch'},
         ],
     },
     features => {
@@ -741,6 +747,7 @@ sub sync_bunch {
     use experimental 'smartmatch';
     require Capture::Tiny;
     require UUID::Random;
+    require App::reposdb;
 
     my %args = @_;
     my $res;
@@ -761,8 +768,6 @@ sub sync_bunch {
 
     my $cmd;
 
-    $source = Cwd::abs_path($source);
-    local $CWD = $source;
     my @entries = _list(\%args);
     #$log->tracef("entries: %s", \@entries);
 
@@ -773,9 +778,15 @@ sub sync_bunch {
     }
     $target = Cwd::abs_path($target);
 
-    my $a = $args{rsync_opt_maintain_ownership} ? "aH" : "rlptDH";
+    my $dbh_target = App::reposdb::_connect_db({
+        reposdb_path => "$target/repos.db",
+    });
 
-    $CWD = $target;
+    my $_a = $args{rsync_opt_maintain_ownership} ? "aH" : "rlptDH";
+
+    $source = Cwd::abs_path($source);
+    local $CWD = $target;
+
     my %res;
     my $i = 0;
     $progress->pos(0) if $progress;
@@ -795,9 +806,9 @@ sub sync_bunch {
             # file/dir is modified/added to target. to check files deleted in
             # target, we use /^deleting /x
             my $uuid = UUID::Random::generate();
-            my $v = $log->is_debug ? "-v" : "";
+            my $_v = $log->is_debug ? "-v" : "";
             my $del = $args{rsync_del} ? "--del" : "";
-            $cmd = "rsync --log-format=$uuid -${a}z $v $del --force ".
+            $cmd = "rsync --log-format=$uuid -${_a}z $_v $del --force ".
                 shell_quote("$source/$file_or_dir")." .";
             my ($stdout, @result) = Capture::Tiny::capture_stdout(
                 sub { system($cmd) });
@@ -847,7 +858,7 @@ sub sync_bunch {
                                   message =>
                                       "Copying repo $repo ...")
                      if $progress;
-                $cmd = "rsync -${a}z ".shell_quote("$source/$repo")." .";
+                $cmd = "rsync -${_a}z ".shell_quote("$source/$repo")." .";
                 system($cmd);
                 $exit = $? >> 8;
                 if ($exit) {
@@ -857,7 +868,11 @@ sub sync_bunch {
                     $res{$repo} = [200, "rsync-ed"];
                 }
                 $log->warn("Repo $repo copied");
-                # XXX touch repo pull time
+                # touch pull time
+                $dbh_target->do("INSERT OR IGNORE INTO repos (name) VALUES (?)",
+                                {}, $repo);
+                $dbh_target->do("UPDATE repos SET pull_time=? WHERE name=?",
+                                {}, time(), $repo);
                 next ENTRY;
             }
         }
@@ -875,8 +890,17 @@ sub sync_bunch {
             $source, $target, $repo,
             {delete_branch => $delete_branch},
         );
+        # touch pull time
+        if ($res->[0] == 200) {
+            $dbh_target->do("INSERT OR IGNORE INTO repos (name) VALUES (?)",
+                            {}, $repo);
+            $dbh_target->do("UPDATE repos SET pull_time=? WHERE name=?",
+                            {}, time(), $repo);
+        }
         $res{$repo} = $res;
     }
+    system "touch", "$target/.gitbunch-sync-timestamp";
+
     $progress->finish if $progress;
 
     [200,

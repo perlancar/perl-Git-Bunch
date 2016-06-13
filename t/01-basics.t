@@ -167,15 +167,15 @@ test_gb(
     test_res => sub {
         my ($res) = @_;
         ok((-d "sync/1"), "target directory created") or return;
-        is(read_text("sync/1/file1", chomp=>1), "foo", "files copied");
+        is(read_text("sync/1/file1"), "foo", "files copied");
         ok((-d "sync/1/.nonrepo1"), "nongit dotdir copied (exists)");
-        is(read_text("sync/1/.nonrepo1/t", chomp=>1), "tea",
+        is(read_text("sync/1/.nonrepo1/t"), "tea",
            "nongit dotdir copied (content)");
         for my $repo (qw(repo1 repo2)) {
             ok( (-d "sync/1/$repo"), "repo $repo copied (exists)");
             ok( (-d "sync/1/$repo/.git"),
                 "repo $repo copied (.git exists)");
-            is( read_text("sync/1/$repo/a", chomp=>1), "apple",
+            is( read_text("sync/1/$repo/a"), "apple",
                 "repo $repo copied (working copy copied)");
             like(~~readpipe("cd sync/1/$repo && git log"), qr/commit1-$repo/i,
                  "repo $repo copied (git log works)");
@@ -205,16 +205,16 @@ test_gb(
     status  => 200,
     test_res => sub {
         my ($res) = @_;
-        is(read_text("sync/1/file1", chomp=>1), "foobar", "files updated");
-        is(read_text("sync/1/.nonrepo1/t", chomp=>1), "tangerine",
+        is(read_text("sync/1/file1"), "foobar", "files updated");
+        is(read_text("sync/1/.nonrepo1/t"), "tangerine",
            "nongit dotdir updated");
         ok(!(-e "sync/1/repo1/a"), "repo1: a deleted");
-        is(read_text("sync/1/repo1/e", chomp=>1), "eggplant",
+        is(read_text("sync/1/repo1/e"), "eggplant",
            "repo1: e added");
-        is(read_text("sync/1/repo1/d/b", chomp=>1), "blackberry",
+        is(read_text("sync/1/repo1/d/b"), "blackberry",
            "repo1: b updated");
         ok(!(-e "sync/1/repo1/k"), "repo1: k moved (1)");
-        is(read_text("sync/1/repo1/d/k", chomp=>1), "kangkung",
+        is(read_text("sync/1/repo1/d/k"), "kangkung",
            "repo1: k moved (2)");
         like(~~readpipe("cd sync/1/repo1 && git log"),
              qr/commit6.+commit5.+commit4.+commit3/s,
@@ -246,12 +246,12 @@ test_gb(
     test_res => sub {
         my ($res) = @_;
         system "cd sync/1/repo2 && git checkout master";
-        is(read_text("sync/1/repo2/s1", chomp=>1),
+        is(read_text("sync/1/repo2/s1"),
            "strawberry", "branch master: s1 added");
         ok(!(-e "sync/1/repo2/s2"), "branch master: s2 not added");
 
         system "cd sync/1/repo2 && git checkout b2";
-        is(read_text("sync/1/repo2/s2", chomp=>1),
+        is(read_text("sync/1/repo2/s2"),
            "spearmint", "branch b2: s2 added");
         ok(!(-e "sync/1/repo2/s1"), "branch b2: s2 not added");
     },
