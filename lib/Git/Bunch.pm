@@ -12,6 +12,7 @@ use IPC::System::Options 'system', 'readpipe', -log=>1, -lang=>'C';
 use Cwd ();
 use File::chdir;
 use File::Path qw(make_path);
+use List::Util qw(max);
 use POSIX qw(strftime);
 use String::ShellQuote;
 
@@ -39,20 +40,24 @@ our %common_args = (
         schema       => ['array' => {
             of => 'str*',
         }],
+        tags => ['filter'],
     },
     repo             => {
         summary      => 'Only process a single repo',
         schema       => 'str*',
+        tags => ['filter'],
     },
     # XXX option to only process a single non-git dir?
     # XXX option to only process a single file?
     include_repos_pat=> {
         summary      => 'Specify regex pattern of repos to include',
         schema       => ['str'],
+        tags => ['filter'],
     },
     exclude_repos    => {
         summary      => 'Exclude some repos from processing',
         schema       => ['array*' => {of => 'str*'}],
+        tags => ['filter'],
     },
     exclude_non_git_dirs => {
         summary      => 'Exclude non-git dirs from processing',
@@ -70,6 +75,7 @@ _
                 code    => sub { $_[0]{exclude_non_git_dirs} = 0 },
             },
         },
+        tags => ['filter'],
     },
     exclude_files    => {
         summary      => 'Exclude files from processing',
@@ -87,10 +93,24 @@ _
                 code    => sub { $_[0]{exclude_non_git_dirs} = 0 },
             },
         },
+        tags => ['filter'],
     },
     exclude_repos_pat=> {
         summary      => 'Specify regex pattern of repos to exclude',
         schema       => ['str'],
+        tags => ['filter'],
+    },
+    min_repo_access_time => {
+        summary => 'Limit to repos that are accessed (mtime, committed, status-ed, pushed) recently',
+        description => <<'_',
+
+This can significantly reduce the time to process the bunch if you are only
+interested in recent repos (which is most of the time unless you are doing a
+full check/sync).
+
+_
+        schema => ['date*', 'x.perl.coerce_to' => 'DateTime', 'x.perl.coerce_rules' => ['str_alami_en']],
+        tags => ['filter'],
     },
 );
 
@@ -99,8 +119,10 @@ our %sort_args = (
         summary      => 'Order entries',
         schema       => ['str' => {
             in      => [qw/name -name
-                           status_time -status_time
+                           mtime -mtime
                            commit_time -commit_time
+                           status_time -status_time
+                           pull_time   -pull_time
                           /],
         }],
     },
@@ -114,10 +136,6 @@ our %target_args = (
         pos          => 1,
     },
 );
-
-sub _fmt_time {
-    strftime("%Y-%m-%dT%H:%M:%S", localtime shift);
-}
 
 sub _check_common_args {
     my ($args, $requires_target) = @_;
@@ -155,44 +173,7 @@ sub _check_common_args {
         return $res unless $res->[0] == 200;
     }
 
-}
-
-sub _sort {
-    my ($entries, $args) = @_;
-
-    my $sort = $args->{sort} or return;
-    my $sortsub;
-    if ($sort eq '-mtime') {
-        $sortsub = sub {((-M $a)//0) <=> ((-M $b)//0)};
-    } elsif ($sort eq 'mtime') {
-        $sortsub = sub {((-M $b)//0) <=> ((-M $a)//0)};
-    } elsif ($sort eq '-name') {
-        $sortsub = sub {$b cmp $a};
-    } elsif ($sort eq 'name') {
-        $sortsub = sub {$a cmp $b};
-    } elsif ($sort =~ /^(-)?(status_time|commit_time)$/) {
-        my ($rev, $column) = ($1, $2);
-        my $db_path = "$args->{source}/repos.db";
-        (-f $db_path) or die "Can't find '$db_path'";
-        require DBI;
-        my $dbh = DBI->connect("dbi:SQLite:dbname=$db_path", "", "",
-                               {RaiseError=>1});
-        my %pos; # key=repo name
-        my $sth = $dbh->prepare(
-            "SELECT name FROM repos ORDER BY $column".
-                ($rev ? " DESC" : ""));
-        $sth->execute;
-        my $i = 0;
-        while (my ($name) = $sth->fetchrow_array) {
-            $pos{$name} = $i++;
-        }
-        $sortsub = sub {
-            ($pos{$a} // 999_999) <=> ($pos{$b} // 999_999)
-        };
-    } else { # rand
-        $sortsub = sub {int(3*rand())-1};
-    }
-    [200, "OK", undef, {sortsub=>$sortsub}];
+    [200];
 }
 
 # return 1 if normal git repo, 2 if bare git repo, 0 if not repo
@@ -211,8 +192,7 @@ sub _skip_process_entry {
 
     my ($e, $args, $dir, $skip_non_repo) = @_;
 
-    return 1 if $e eq '.' || $e eq '..';
-    my $is_repo = _is_repo($dir);
+    my $is_repo = $e->{type} eq 'r';
 
     if (defined $args->{repo}) {
         # avoid logging all the skipped messages if user just wants to process a
@@ -223,36 +203,41 @@ sub _skip_process_entry {
     }
 
     if ($skip_non_repo && !$is_repo) {
-        $log->warn("Skipped $e (not a git repo), ".
-                       "please remove it or rename to .$e");
+        $log->debug("Skipped $e->{name} (not a git repo), ".
+                        "please remove it or rename to .$e->{name}");
         return 1;
     }
     if ($is_repo) {
         my $ir = $args->{include_repos};
-        if ($ir && !($e ~~ @$ir)) {
-            $log->debug("Skipped $e (not in include_repos)");
+        if ($ir && !($e->{name} ~~ @$ir)) {
+            $log->debug("Skipped $e->{name} (not in include_repos)");
             return 1;
         }
         my $irp = $args->{include_repos_pat};
-        if (defined($irp) && $e !~ qr/$irp/) {
-            $log->debug("Skipped $e (not matched include_repos_pat)");
+        if (defined($irp) && $e->{name} !~ qr/$irp/) {
+            $log->debug("Skipped $e->{name} (not matched include_repos_pat)");
             return 1;
         }
         my $er = $args->{exclude_repos};
-        if ($er && $e ~~ @$er) {
-            $log->debug("Skipped $e (in exclude_repos)");
+        if ($er && $e->{name} ~~ @$er) {
+            $log->debug("Skipped $e->{name} (in exclude_repos)");
             return 1;
         }
         my $erp = $args->{exclude_repos_pat};
-        if (defined($erp) && $e =~ qr/$erp/) {
-            $log->debug("Skipped $e (not matched exclude_repos_pat)");
+        if (defined($erp) && $e->{name} =~ qr/$erp/) {
+            $log->debug("Skipped $e->{name} (not matched exclude_repos_pat)");
+            return 1;
+        }
+        my $min_rat = $args->{min_repo_access_time};
+        if ($min_rat && max(grep {defined} $e->{mtime}, $e->{commit_time}, $e->{status_time}, $e->{pull_time}) < $min_rat->epoch) {
+            $log->debug("Skipped $e->{name} (doesn't pass min_repo_access_time)");
             return 1;
         }
     } elsif ((-f $dir) && $args->{exclude_files}) {
-        $log->debug("Skipped $e (exclude_files)");
+        $log->debug("Skipped $e->{name} (exclude_files)");
         return 1;
     } elsif ((-d $dir) && $args->{exclude_non_git_dirs}) {
-        $log->debug("Skipped $e (exclude_non_git_dirs)");
+        $log->debug("Skipped $e->{name} (exclude_non_git_dirs)");
         return 1;
     }
     return 0;
@@ -275,6 +260,51 @@ sub _check_bunch_sanity {
                     "you should specify a dir *containing* ".
                         "git repos instead"];
     [200, "OK"];
+}
+
+sub _list {
+    my $args = shift;
+
+    my @entries;
+    @entries = do {
+        opendir my ($dh), "." or die "Can't read dir '$args->{source}': $!";
+        map { +{name => $_} } grep { $_ ne '.' && $_ ne '..' } readdir($dh);
+    };
+    for my $e (@entries) {
+        my @st = stat $e->{name};
+        $e->{mtime} = $st[9];
+        if (-d _) {
+            if ($e->{name} =~ /\A\./) {
+                $e->{type} = 'd';
+            } elsif (-d "$e->{name}/.git") {
+                $e->{type} = 'r';
+            } else {
+                $e->{type} = 'd';
+            }
+        } else {
+            $e->{type} = 'f';
+        }
+    }
+    {
+        #last unless $sort =~ /\A-?(commit_time|status_time|pull_time)/;
+        last unless -f "repos.db";
+        require DBI;
+        my $dbh = DBI->connect("dbi:SQLite:dbname=repos.db", "", "",
+                               {RaiseError=>1});
+        my $sth = $dbh->prepare("SELECT * FROM repos");
+        $sth->execute;
+        my %rows;
+        while (my $row = $sth->fetchrow_hashref) {
+            $rows{$row->{name}} = $row;
+        }
+        for my $e (@entries) {
+            next unless my $row = $rows{$e->{name}};
+            for (qw/commit_time status_time pull_time/) {
+                $e->{$_} = $row->{$_};
+            }
+        }
+    }
+    @entries;
 }
 
 $SPEC{check_bunch} = {
@@ -313,7 +343,6 @@ sub check_bunch {
     # XXX schema
     $res = _check_common_args(\%args);
     return $res unless $res->[0] == 200;
-    my $sortsub = $res->[3]{sortsub};
     my $source = $args{source};
 
     $log->info("Checking bunch $source ...");
@@ -322,18 +351,16 @@ sub check_bunch {
     my %res;
     local $CWD = $source;
 
-    my @entries;
-    @entries = grep {-d} <*>;
-    @entries = sort $sortsub @entries if $sortsub;
-    #$log->tracef("entries: %s", \@entries);
+    my @entries = _list(\%args);
 
     my $i = 0;
     $progress->pos(0) if $progress;
     $progress->target(~~@entries) if $progress;
   REPO:
-    for my $repo (@entries) {
+    for my $e (@entries) {
+        my $repo = $e->{name};
+        next REPO if _skip_process_repo($e, \%args, ".");
         $CWD = $i++ ? "../$repo" : $repo;
-        next REPO if _skip_process_repo($repo, \%args, ".");
 
         $progress->update(pos => $i,
                           message =>
@@ -411,59 +438,45 @@ _
 };
 sub list_bunch_contents {
     use experimental 'smartmatch';
-    require DBI;
 
     my %args = @_;
 
     # XXX schema
     my $res = _check_common_args(\%args);
     return $res unless $res->[0] == 200;
-    my $sortsub = $res->[3]{sortsub};
     my $source = $args{source};
+    my $sort = $args{sort} // '';
 
     local $CWD = $source;
 
-    my %lctimes;
-    {
-        last unless -f "repos.db";
-        my $dbh = DBI->connect("dbi:SQLite:dbname=repos.db", "", "",
-                               {RaiseError=>1});
-        my $sth = $dbh->prepare("SELECT name,commit_time FROM repos");
-        $sth->execute;
-        while (my ($n, $cts) = $sth->fetchrow_array) {
-            $lctimes{$n} = $cts;
-        }
-    }
+    my @entries = _list(\%args);
 
-    my @entries;
-    @entries = do {
-        opendir my ($dh), "." or die "Can't read dir '$source': $!";
-        readdir($dh);
-    };
-    @entries = sort $sortsub @entries if $sortsub;
+    if ($sort) {
+        no warnings 'uninitialized';
+        my $sortsub;
+        my ($rev, $field);
+        if (($rev, $field) = $sort =~ /\A(-)?(mtime|commit_time|status_time|pull_time)/) {
+            $sortsub = sub { ($rev ? -1:1) * ($a->{$field} <=> $b->{$field}) };
+        } elsif (($rev, $field) = $sort =~ /\A(-)?(name)/) {
+            $sortsub = sub { ($rev ? -1:1) * ($a->{$field} cmp $b->{$field}) };
+        }
+        @entries = sort $sortsub @entries;
+    }
     #$log->tracef("entries: %s", \@entries);
 
     my @res;
   ENTRY:
-    for my $entry (@entries) {
-        next ENTRY if _skip_process_entry($entry, \%args, ".");
-        my $rec = { name => $entry };
-        #my @st = stat($entry);
-        if (-d $entry) {
-            $rec->{type} = $entry =~ /\A\./ ? 'd' : 'r';
-            #$rec->{mtime} = $st[9];
-        } else {
-            $rec->{type} = 'f';
-            #$rec->{mtime} = $st[9];
-        }
-        $rec->{lctime} = _fmt_time($lctimes{$entry})
-            if $lctimes{$entry};
-        push @res, $rec;
+    for my $e (@entries) {
+        next ENTRY if _skip_process_entry($e, \%args, ".");
+        push @res, $e;
     }
 
     my %resmeta;
     if ($args{detail}) {
-        $resmeta{'table.fields'} = [qw/name type lctime/];
+        $resmeta{'table.fields'} =
+            [qw/name type mtime commit_time status_time pull_time/];
+        $resmeta{'table.field_formats'} =
+            [undef, undef, 'iso8601_datetime', 'iso8601_datetime', 'iso8601_datetime', 'iso8601_datetime'];
     } else {
         @res = map { $_->{name} } @res;
     }
@@ -580,7 +593,7 @@ sub _sync_repo {
                                  ^Merge \s made \s by \s recursive|
                                  ^Merge \s made \s by \s the \s 'recursive'|
                                 /mx) {
-            system "touch", "$dest/$repo/.git/.commit-timestamp";
+            # XXX touch
             $log->warn("Branch $branch of repo $repo updated")
                 if @src_branches > 1;
             $log->warn("Repo $repo updated")
@@ -737,7 +750,6 @@ sub sync_bunch {
     # XXX schema
     $res = _check_common_args(\%args, 1);
     return $res unless $res->[0] == 200;
-    my $sortsub = $res->[3]{sortsub};
     my $delete_branch = $args{delete_branch} // 0;
     my $source = $args{source};
     my $target = $args{target};
@@ -749,6 +761,11 @@ sub sync_bunch {
 
     my $cmd;
 
+    $source = Cwd::abs_path($source);
+    local $CWD = $source;
+    my @entries = _list(\%args);
+    #$log->tracef("entries: %s", \@entries);
+
     unless (-d $target) {
         $log->debugf("Creating target directory %s ...", $target);
         make_path($target)
@@ -758,17 +775,7 @@ sub sync_bunch {
 
     my $a = $args{rsync_opt_maintain_ownership} ? "aH" : "rlptDH";
 
-    my @entries;
-    {
-        local $CWD = $source;
-        opendir my($d), ".";
-        @entries = readdir($d);
-        @entries = sort $sortsub @entries if $sortsub;
-    }
-    #$log->tracef("entries: %s", \@entries);
-
-    $source = Cwd::abs_path($source);
-    local $CWD = $target;
+    $CWD = $target;
     my %res;
     my $i = 0;
     $progress->pos(0) if $progress;
@@ -776,12 +783,13 @@ sub sync_bunch {
   ENTRY:
     for my $e (@entries) {
         ++$i;
-        next ENTRY if _skip_process_entry($e, \%args, "$source/$e");
-        my $is_repo = _is_repo("$source/$e");
+        next ENTRY if _skip_process_entry($e, \%args, "$source/$e->{name}");
+        my $is_repo = _is_repo("$source/$e->{name}");
         if (!$is_repo) {
+            my $file_or_dir = $e->{name};
             $progress->update(pos => $i,
                               message =>
-                                  "Sync-ing non-git file/directory $e ...")
+                                  "Sync-ing non-git file/directory $file_or_dir ...")
                  if $progress;
             # just some random unique string so we can detect whether any
             # file/dir is modified/added to target. to check files deleted in
@@ -790,45 +798,46 @@ sub sync_bunch {
             my $v = $log->is_debug ? "-v" : "";
             my $del = $args{rsync_del} ? "--del" : "";
             $cmd = "rsync --log-format=$uuid -${a}z $v $del --force ".
-                shell_quote("$source/$e")." .";
+                shell_quote("$source/$file_or_dir")." .";
             my ($stdout, @result) = Capture::Tiny::capture_stdout(
                 sub { system($cmd) });
             if ($result[0]) {
                 $log->warn("Rsync failed, please check: $result[0]");
-                $res{$e} = [500, "rsync failed: $result[0]"];
+                $res{$file_or_dir} = [500, "rsync failed: $result[0]"];
             } else {
                 if ($stdout =~ /^(deleting |\Q$uuid\E)/m) {
-                    $log->warn("Non-git file/dir '$e' updated");
+                    $log->warn("Non-git file/dir '$file_or_dir' updated");
                 }
-                $res{$e} = [200, "rsync-ed"];
+                $res{$file_or_dir} = [200, "rsync-ed"];
             }
             next ENTRY;
         }
 
+        my $repo = $e->{name};
         my $created;
-        if (!(-e $e)) {
+        if (!(-e $repo)) {
             if ($create_bare) {
-                $log->info("Initializing target repo $e (bare) ...");
-                $cmd = "mkdir ".shell_quote($e)." && cd ".shell_quote($e).
+                $log->info("Initializing target repo $repo (bare) ...");
+                $cmd = "mkdir ".shell_quote($repo)." && cd ".shell_quote($repo).
                     " && git init --bare";
                 system($cmd);
                 $exit = $? >> 8;
                 if ($exit) {
                     $log->warn("Git init failed, please check: $exit");
-                    $res{$e} = [500, "git init --bare failed: $exit"];
+                    $res{$repo} = [500, "git init --bare failed: $exit"];
                     next ENTRY;
                 }
                 $created++;
                 # continue to sync-ing
             } elsif (defined $create_bare) {
-                $log->info("Initializing target repo $e (non-bare) ...");
-                $cmd = "mkdir ".shell_quote($e)." && cd ".shell_quote($e).
+                $log->info("Initializing target repo $repo (non-bare) ...");
+                $cmd = "mkdir ".shell_quote($repo)." && cd ".shell_quote($repo).
                     " && git init";
                 system($cmd);
                 $exit = $? >> 8;
                 if ($exit) {
                     $log->warn("Git init failed, please check: $exit");
-                    $res{$e} = [500, "git init failed: $exit"];
+                    $res{$repo} = [500, "git init failed: $exit"];
                     next ENTRY;
                 }
                 $created++;
@@ -836,37 +845,37 @@ sub sync_bunch {
             } else {
                 $progress->update(pos => $i,
                                   message =>
-                                      "Copying repo $e ...")
+                                      "Copying repo $repo ...")
                      if $progress;
-                $cmd = "rsync -${a}z ".shell_quote("$source/$e")." .";
+                $cmd = "rsync -${a}z ".shell_quote("$source/$repo")." .";
                 system($cmd);
                 $exit = $? >> 8;
                 if ($exit) {
                     $log->warn("Rsync failed, please check: $exit");
-                    $res{$e} = [500, "rsync failed: $exit"];
+                    $res{$repo} = [500, "rsync failed: $exit"];
                 } else {
-                    $res{$e} = [200, "rsync-ed"];
+                    $res{$repo} = [200, "rsync-ed"];
                 }
-                system "touch", "$e/.git/.commit-timestamp";
-                $log->warn("Repo $e copied");
+                $log->warn("Repo $repo copied");
+                # XXX touch repo pull time
                 next ENTRY;
             }
         }
 
         if ($backup && !$created) {
-            $log->debug("Discarding changes in target repo $e ...");
-            local $CWD = $e;
+            $log->debug("Discarding changes in target repo $repo ...");
+            local $CWD = $repo;
             system "git clean -f -d && git checkout .";
             # ignore error for now, let's go ahead and sync anyway
         }
 
-        $progress->update(pos => $i, message => "Sync-ing repo $e ...")
+        $progress->update(pos => $i, message => "Sync-ing repo $repo ...")
              if $progress;
         my $res = _sync_repo(
-            $source, $target, $e,
+            $source, $target, $repo,
             {delete_branch => $delete_branch},
         );
-        $res{$e} = $res;
+        $res{$repo} = $res;
     }
     $progress->finish if $progress;
 
@@ -905,7 +914,6 @@ sub exec_bunch {
     # XXX schema
     $res = _check_common_args(\%args);
     return $res unless $res->[0] == 200;
-    my $sortsub = $res->[3]{sortsub};
     my $source  = $args{source};
     my $command = $args{command};
     defined($command) or return [400, "Please specify command"];
@@ -913,13 +921,13 @@ sub exec_bunch {
     local $CWD = $source;
     my %res;
     my $i = 0;
-    my @entries = grep {-d} <*>;
-    @entries = sort $sortsub @entries if $sortsub;
+    my @entries = _list(\%args);
     #$log->tracef("entries: %s", \@entries);
   REPO:
-    for my $repo (@entries) {
+    for my $e (@entries) {
+        next REPO if _skip_process_repo($e, \%args, ".");
+        my $repo = $e->{name};
         $CWD = $i++ ? "../$repo" : $repo;
-        next REPO if _skip_process_repo($repo, \%args, ".");
         $log->info("Executing command on $repo ...");
         system($command);
         $exit = $? >> 8;

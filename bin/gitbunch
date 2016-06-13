@@ -9,6 +9,9 @@ use warnings;
 
 use Perinci::CmdLine::Any;
 
+# workaround for current bug
+$ENV{LOG} //= 1;
+
 Perinci::CmdLine::Any->new(
     url => '/Git/Bunch/',
     subcommands => {

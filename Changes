@@ -1,5 +1,28 @@
 Revision history for Git-Bunch
 
+0.51    2015-06-13 (PERLANCAR) (unreleased)
+
+        - [Removed] Remove --sort option from all subcommands except ls. Remove
+          sorting by .git/commit-timestamp and stop updating those files because
+          we are now exclusively using repos.db.
+
+        - check: Add --dry-run to quickly show the order of repos to be
+          processed without actually doing any 'git status'.
+
+        - Add option --min-repo-access-time to select only "recent repos", using
+          information from repos.db. This can cut down sync/check time
+          significantly if you only care about recently accessed
+          (committed/status-ed/pushed into or by repo mtime) and you happen to
+          have hundreds/thousand+ repos in your bunch and you modify only a few
+          of them daily. If you use 'gitbunch sync' daily, for example, you can
+          use "--min-repo-access-time '1 day ago'".
+
+        - [not yet] sync: Skip sync-ing special files like repos.db and
+          .gitbunch-sync-timestamp, even when given --include-files.
+
+        - Use App::reposdb to manipulate repos.db.
+
+
 0.50    2015-11-05 (PERLANCAR)
 
 	- [Incompatible change] sync: Now defaults to not using rsync --del
