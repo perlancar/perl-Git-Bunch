@@ -1,5 +1,11 @@
 Revision history for Git-Bunch
 
+0.53    2015-06-14 (PERLANCAR)
+
+        - exec, sync: Add dry-run feature, sort repos by recentness when
+          --min-repo-access-time is specified.
+
+
 0.52    2015-06-14 (PERLANCAR)
 
         - [Incompatible change] Expect float(epoch) instead of DateTime object
