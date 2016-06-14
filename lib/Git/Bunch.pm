@@ -109,7 +109,7 @@ interested in recent repos (which is most of the time unless you are doing a
 full check/sync).
 
 _
-        schema => ['date*', 'x.perl.coerce_to' => 'DateTime', 'x.perl.coerce_rules' => ['str_alami_en']],
+        schema => ['date*', 'x.perl.coerce_rules' => ['str_alami_en']],
         tags => ['filter'],
     },
 );
@@ -235,7 +235,7 @@ sub _skip_process_entry {
             return 1;
         }
         my $min_rat = $args->{min_repo_access_time};
-        if ($min_rat && max(grep {defined} $e->{mtime}, $e->{commit_time}, $e->{status_time}, $e->{pull_time}) < $min_rat->epoch) {
+        if ($min_rat && max(grep {defined} $e->{mtime}, $e->{commit_time}, $e->{status_time}, $e->{pull_time}) < $min_rat) {
             $log->debug("Skipped $e->{name} (doesn't pass min_repo_access_time)");
             return 1;
         }
