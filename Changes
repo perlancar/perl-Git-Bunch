@@ -1,6 +1,6 @@
 Revision history for Git-Bunch
 
-0.51    2015-06-13 (PERLANCAR) (unreleased)
+0.51    2015-06-14 (PERLANCAR)
 
         - [Removed] Remove --sort option from all subcommands except ls. Remove
           sorting by .git/commit-timestamp and stop updating those files because
