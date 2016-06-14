@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.52    2015-06-14 (PERLANCAR)
+
+        - [Incompatible change] Expect float(epoch) instead of DateTime object
+          as date in --min-repo-access-time, since the new str_alami_en date
+          coerce rule no longer requires use to coerce to DateTime object.
+
+
 0.51    2015-06-14 (PERLANCAR)
 
         - [Removed] Remove --sort option from all subcommands except ls. Remove
