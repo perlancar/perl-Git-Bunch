@@ -768,9 +768,6 @@ sub sync_bunch {
 
     my $cmd;
 
-    my @entries = _list(\%args);
-    #$log->tracef("entries: %s", \@entries);
-
     unless (-d $target) {
         $log->debugf("Creating target directory %s ...", $target);
         make_path($target)
@@ -785,7 +782,12 @@ sub sync_bunch {
     my $_a = $args{rsync_opt_maintain_ownership} ? "aH" : "rlptDH";
 
     $source = Cwd::abs_path($source);
-    local $CWD = $target;
+
+    local $CWD = $source;
+    my @entries = _list(\%args);
+    #$log->tracef("entries: %s", \@entries);
+
+    $CWD = $target;
 
     my %res;
     my $i = 0;
