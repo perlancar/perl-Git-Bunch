@@ -313,6 +313,15 @@ sub _list {
     @entries;
 }
 
+sub _sort_entries_by_recent {
+    no warnings 'uninitialized';
+    sort {
+        my $sort_a = max($a->{commit_time}, $a->{pull_time}, $a->{status_time}, $a->{mtime});
+        my $sort_b = max($b->{commit_time}, $b->{pull_time}, $b->{status_time}, $b->{mtime});
+        $sort_b <=> $sort_a;
+    } @_;
+}
+
 $SPEC{check_bunch} = {
     v             => 1.1,
     summary       =>
@@ -374,7 +383,7 @@ sub check_bunch {
             if $progress;
 
         if ($args{-dry_run}) {
-            $log->infof("[DRY] checking status of repo %s", $repo);
+            $log->infof("[DRY-RUN] checking status of repo %s", $repo);
             next REPO;
         }
 
@@ -741,6 +750,7 @@ _
     },
     features => {
         progress => 1,
+        dry_run => 1,
     },
 };
 sub sync_bunch {
@@ -768,16 +778,17 @@ sub sync_bunch {
 
     my $cmd;
 
-    unless (-d $target) {
+    unless ((-d $target) || $args{-dry_run}) {
         $log->debugf("Creating target directory %s ...", $target);
         make_path($target)
             or return [500, "Can't create target directory $target: $!"];
     }
     $target = Cwd::abs_path($target);
 
-    my $dbh_target = App::reposdb::_connect_db({
+    my $dbh_target;
+    $dbh_target = App::reposdb::_connect_db({
         reposdb_path => "$target/repos.db",
-    });
+    }) unless $args{-dry_run};
 
     my $_a = $args{rsync_opt_maintain_ownership} ? "aH" : "rlptDH";
 
@@ -785,6 +796,7 @@ sub sync_bunch {
 
     local $CWD = $source;
     my @entries = _list(\%args);
+    @entries = _sort_entries_by_recent(@entries) if $args{min_repo_access_time};
     #$log->tracef("entries: %s", \@entries);
 
     $CWD = $target;
@@ -804,6 +816,10 @@ sub sync_bunch {
                               message =>
                                   "Sync-ing non-git file/directory $file_or_dir ...")
                  if $progress;
+            if ($args{-dry_run}) {
+                $log->warnf("[DRY RUN] Updating non-git file/dir '%s'", $file_or_dir);
+                next ENTRY;
+            }
             # just some random unique string so we can detect whether any
             # file/dir is modified/added to target. to check files deleted in
             # target, we use /^deleting /x
@@ -829,6 +845,10 @@ sub sync_bunch {
         my $repo = $e->{name};
         my $created;
         if (!(-e $repo)) {
+            if ($args{-dry_run}) {
+                $log->warnf("[DRY RUN] Copying repo '%s'", $repo);
+                next ENTRY;
+            }
             if ($create_bare) {
                 $log->info("Initializing target repo $repo (bare) ...");
                 $cmd = "mkdir ".shell_quote($repo)." && cd ".shell_quote($repo).
@@ -879,6 +899,14 @@ sub sync_bunch {
             }
         }
 
+        $progress->update(pos => $i, message => "Sync-ing repo $repo ...")
+            if $progress;
+
+        if ($args{-dry_run}) {
+            $log->warnf("[DRY RUN] Sync-ing repo '%s'", $repo);
+            next ENTRY;
+        }
+
         if ($backup && !$created) {
             $log->debug("Discarding changes in target repo $repo ...");
             local $CWD = $repo;
@@ -886,8 +914,6 @@ sub sync_bunch {
             # ignore error for now, let's go ahead and sync anyway
         }
 
-        $progress->update(pos => $i, message => "Sync-ing repo $repo ...")
-             if $progress;
         my $res = _sync_repo(
             $source, $target, $repo,
             {delete_branch => $delete_branch},
@@ -931,6 +957,9 @@ _
             greedy   => 1,
         },
     },
+    features => {
+        dry_run => 1,
+    },
 };
 sub exec_bunch {
     my %args = @_;
@@ -948,12 +977,17 @@ sub exec_bunch {
     my %res;
     my $i = 0;
     my @entries = _list(\%args);
+    @entries = _sort_entries_by_recent(@entries) if $args{min_repo_access_time};
     #$log->tracef("entries: %s", \@entries);
   REPO:
     for my $e (@entries) {
         next REPO if _skip_process_repo($e, \%args, ".");
         my $repo = $e->{name};
         $CWD = $i++ ? "../$repo" : $repo;
+        if ($args{-dry_run}) {
+            $log->info("[DRY-RUN] Executing command on $repo ...");
+            next REPO;
+        }
         $log->info("Executing command on $repo ...");
         system($command);
         $exit = $? >> 8;
