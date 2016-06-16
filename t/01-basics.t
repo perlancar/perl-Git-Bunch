@@ -14,6 +14,8 @@ use IPC::System::Options 'system', 'readpipe', -log=>1, -lang=>'C';
 use Probe::Perl;
 use String::ShellQuote;
 
+my $_name_email = "-c user.name=name -c user.email=name\@example.com";
+
 # XXX sync + --create_bare / --nocreate-bare
 # XXX --exclude_repos_pat
 # XXX --include_repos_pat
@@ -90,7 +92,7 @@ test_gb(
              "repo1 is unclean (message)");
     },
 );
-system "cd src/bunch1/repo1 && git commit -am 'commit2-repo1'";
+system "cd src/bunch1/repo1 && git $_name_email commit -am 'commit2-repo1'";
 test_gb(
     sub     => "check_bunch",
     name    => "needs commit (committed)",
@@ -188,15 +190,15 @@ write_text "src/bunch1/file1", "foobar";
 write_text "src/bunch1/.nonrepo1/t", "tangerine";
 # delete
 unlink     "src/bunch1/repo1/a";
-system  "cd src/bunch1/repo1 && git commit -am 'commit3-repo1'";
+system  "cd src/bunch1/repo1 && git $_name_email commit -am 'commit3-repo1'";
 # add
 write_text "src/bunch1/repo1/e", "eggplant";
-system  "cd src/bunch1/repo1 && git add e && git commit -am 'commit4-repo1'";
+system  "cd src/bunch1/repo1 && git add e && git $_name_email commit -am 'commit4-repo1'";
 # update
 write_text "src/bunch1/repo1/d/b", "blackberry";
-system  "cd src/bunch1/repo1 && git commit -am 'commit5-repo1'";
+system  "cd src/bunch1/repo1 && git $_name_email commit -am 'commit5-repo1'";
 # rename
-system  "cd src/bunch1/repo1 && git mv k d/ && git commit -am 'commit6-repo1'";
+system  "cd src/bunch1/repo1 && git mv k d/ && git $_name_email commit -am 'commit6-repo1'";
 
 test_gb(
     sub     => "sync_bunch",
@@ -232,11 +234,11 @@ test_gb(
 write_text "src/bunch1/repo2/s1", "strawberry";
 system  "cd src/bunch1/repo2 && git branch b2";
 system  "cd src/bunch1/repo2 && git add s1 && ".
-    "git commit -am 'commit3-master-repo2'";
+    "git $_name_email commit -am 'commit3-master-repo2'";
 system  "cd src/bunch1/repo2 && git checkout b2";
 write_text "src/bunch1/repo2/s2", "spearmint";
 system  "cd src/bunch1/repo2 && git add s2 && ".
-    "git commit -am 'commit4-b2-repo2'";
+    "git $_name_email commit -am 'commit4-b2-repo2'";
 
 test_gb(
     sub     => "sync_bunch",
@@ -326,11 +328,8 @@ sub create_test_data {
     write_text "src/bunch1/repo1/k", "kangkung";
     $CWD     = "src/bunch1/repo1";
     system     "git init";
-    # doesn't matter, what's needed is config --global?
-    #system     'git config user.name nobody';
-    #system     'git config user.email nobody@example.org';
     system     "git add .";
-    system     "git commit -am 'commit1-repo1'";
+    system     "git $_name_email commit -am 'commit1-repo1'";
     $CWD     = "../../..";
 
     mkdir      "src/bunch1/repo2";
@@ -340,9 +339,9 @@ sub create_test_data {
     $CWD     = "src/bunch1/repo2";
     system     "git init";
     system     "git add .";
-    system     "git commit -am 'commit1-repo2'";
+    system     "git $_name_email commit -am 'commit1-repo2'";
     write_text   "a", "apple";
-    system     "git commit -am 'commit2-repo2'";
+    system     "git $_name_email commit -am 'commit2-repo2'";
     $CWD     = "../../..";
 }
 
