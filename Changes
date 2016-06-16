@@ -1,5 +1,13 @@
 Revision history for Git-Bunch
 
+0.54    2016-06-16 (PERLANCAR)
+
+	- No functional changes.
+
+	- [test] Fix failing test reports due to 'git' not configured yet
+	  (no user.name and user.email config) [CT].
+
+
 0.53    2015-06-14 (PERLANCAR)
 
         - exec, sync: Add dry-run feature, sort repos by recentness when
