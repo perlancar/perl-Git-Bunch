@@ -282,10 +282,15 @@ sub _list {
         if (-d _) {
             if ($e->{name} =~ /\A\./) {
                 $e->{type} = 'd';
-            } elsif (-d "$e->{name}/.git") {
-                $e->{type} = 'r';
+
+                # to save stat() call, we assume any dir that does not start
+                # with dot to be a repo
+
+            #} elsif (-d "$e->{name}/.git") {
+            #    $e->{type} = 'r';
+
             } else {
-                $e->{type} = 'd';
+                $e->{type} = 'r';
             }
         } else {
             $e->{type} = 'f';
