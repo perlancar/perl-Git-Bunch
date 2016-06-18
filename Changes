@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.55    2016-06-18 (PERLANCAR)
+
+        - [optimize] check_bunch(): To save one stat() call per dir, assume any
+          dir that does not start with dot to be a repo instead of checking its
+          .git/.
+
+
 0.54    2016-06-16 (PERLANCAR)
 
 	- No functional changes.
