@@ -14,6 +14,21 @@ use IPC::System::Options 'system', 'readpipe', -log=>1, -lang=>'C';
 use Probe::Perl;
 use String::ShellQuote;
 
+for (qw(git rsync rm)) {
+    plan skip_all => "$_ not available in PATH" unless which($_);
+}
+my $git_version = `git --version`;
+diag "git version = $git_version";
+$git_version =~ /(\d+\.\d+\.\d+)/ or die "Can't extract git version (x.y.z)";
+
+# some CPAN Testers machines report failures because its git doesn't grok '-c'.
+# i couldn't find out (from grep-ing the release notes back from 1.5.0.1) when
+# '-c' was introduced, so to be safe i'm using a minimum version of 2.1.4 which
+# i currently use.
+unless (version->parse($1) >= version->parse("2.1.4")) {
+    plan skip_all => "git is older than 2.1.4";
+}
+
 my $_name_email = "-c user.name=name -c user.email=name\@example.com";
 
 # XXX sync + --create_bare / --nocreate-bare
@@ -21,9 +36,6 @@ my $_name_email = "-c user.name=name -c user.email=name\@example.com";
 # XXX --include_repos_pat
 # XXX exec
 
-for (qw(git rsync rm)) {
-    plan skip_all => "$_ not available in PATH" unless which($_);
-}
 # due to shell quoting etc
 my $pp = Probe::Perl->new;
 plan skip_all => 'currently only test on Unix'
