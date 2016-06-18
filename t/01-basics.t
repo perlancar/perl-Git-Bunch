@@ -78,18 +78,21 @@ test_gb(
     status  => 400,
 );
 
-mkdir "src/bunch1/nonrepo2";
-test_gb(
-    sub     => "check_bunch",
-    name    => "skip nondot, nongit dir",
-    args    => {source=>"src/bunch1"},
-    status  => 200,
-    test_res => sub {
-        my ($res) = @_;
-        ok(!$res->[2]{nonrepo2}, "nonrepo2 is skipped");
-    },
-);
-rmdir "src/bunch1/nonrepo2";
+# disabled since 0.55 because to save one stat() call per dir, we no longer
+# check DIR/.git in check_bunch().
+
+#mkdir "src/bunch1/nonrepo2";
+#test_gb(
+#    sub     => "check_bunch",
+#    name    => "skip nondot, nongit dir",
+#    args    => {source=>"src/bunch1"},
+#    status  => 200,
+#    test_res => sub {
+#        my ($res) = @_;
+#        ok(!$res->[2]{nonrepo2}, "nonrepo2 is skipped");
+#    },
+#);
+#rmdir "src/bunch1/nonrepo2";
 
 write_text("src/bunch1/repo1/d/b", "");
 test_gb(
