@@ -1,5 +1,12 @@
 Revision history for Git-Bunch
 
+0.57    2016-11-29 (PERLANCAR)
+
+	- No functional changes.
+
+	- [doc] Tweak/add documentation.
+
+
 0.56    2016-11-29 (PERLANCAR)
 
         - Add protection against wrong direction of rsync by checking newest
