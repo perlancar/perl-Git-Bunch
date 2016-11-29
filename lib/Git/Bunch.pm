@@ -717,6 +717,16 @@ are not owned by root), turn this option on.
 
 _
         },
+        rsync_del => {
+            summary => 'Whether to use --del rsync option',
+            schema => 'bool',
+            description => <<'_',
+
+When rsync-ing non-repos, by default `--del` option is not used for more safety
+because rsync is a one-way action. To add rsync `--del` option, enable this
+
+_
+        },
         skip_mtime_check => {
             summary => 'Whether or not, when rsync-ing non-repos, '.
                 'we check mtime first',
@@ -874,7 +884,8 @@ sub sync_bunch {
             # target, we use /^deleting /x
             my $uuid = UUID::Random::generate();
             my $_v = $log->is_debug ? "-v" : "";
-            $cmd = "rsync --log-format=$uuid -${_a}z $_v --del --force ".
+            my $del = $args{rsync_del} ? "--del" : "";
+            $cmd = "rsync --log-format=$uuid -${_a}z $_v $del --force ".
                 shell_quote("$source/$file_or_dir")." .";
             my ($stdout, @result) = Capture::Tiny::capture_stdout(
                 sub { system($cmd) });
