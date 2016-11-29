@@ -658,6 +658,30 @@ sub _sync_repo {
     }
 }
 
+sub _find_newest_mtime {
+    my $path = shift;
+
+    my @st = lstat($path) or return (0, $path);
+    my $is_dir = (-d _);
+    my $mtime = $st[9];
+    if ($is_dir) {
+        opendir my($dh), $path
+            or die "Can't opendir $path: $!";
+        my @entries = grep { $_ ne '.' && $_ ne '..' } readdir($dh);
+        my @res = map { [_find_newest_mtime("$path/$_")] } @entries;
+        my $max_path = $path;
+        my $max_mtime = $mtime;
+        for my $r (@res) {
+            if ($r->[0] > $max_mtime) {
+                $max_mtime = $r->[0];
+                $max_path = $r->[1];
+            }
+        }
+        return ($max_mtime, $max_path);
+    }
+    ($mtime, $path);
+}
+
 $SPEC{sync_bunch} = {
     v             => 1.1,
     summary       =>
@@ -693,13 +717,17 @@ are not owned by root), turn this option on.
 
 _
         },
-        rsync_del => {
-            summary => 'Whether to use --del rsync option',
-            schema => 'bool',
+        skip_mtime_check => {
+            summary => 'Whether or not, when rsync-ing non-repos, '.
+                'we check mtime first',
+            schema => ['bool'],
             description => <<'_',
 
-When rsync-ing non-repos, by default `--del` option is not used for more safety
-because rsync is a one-way action. To add rsync `--del` option, enable this
+By default when we rsync a non-repo file/dir from source to target and both
+exist, to protect wrong direction of sync-ing we find the newest mtime in source
+or dir (if dir, then the dir is recursively traversed to find the file/subdir
+with the newest mtime). If target contains the newer mtime, the sync for that
+non-repo file/dir is aborted. If you want to force the rsync anyway, use this
 option.
 
 _
@@ -821,17 +849,32 @@ sub sync_bunch {
                               message =>
                                   "Sync-ing non-git file/directory $file_or_dir ...")
                  if $progress;
+
+            unless ($args{skip_mtime_check}) {
+                $log->tracef("Checking newest mtime for non-repo file/dir %s ...", $file_or_dir);
+                my ($newest_mtime_source, $newest_path_source) = _find_newest_mtime("$source/$file_or_dir");
+                $log->tracef("Newest mtime for %s (in source): %s", $newest_mtime_source ? scalar(localtime $newest_mtime_source) : "-");
+                my ($newest_mtime_target, $newest_path_target) = _find_newest_mtime($file_or_dir);
+                $log->tracef("Newest mtime for %s (in target): %s", $newest_mtime_target ? scalar(localtime $newest_mtime_target) : "-");
+                if ($newest_mtime_target > $newest_mtime_source) {
+                    $log->warnf("Skipped rsync %s because target has file/subdir (%s) with newer newest mtime (%s)",
+                                $file_or_dir, $newest_path_target, scalar(localtime $newest_mtime_target));
+                    $res{$file_or_dir} = [412, "rsync skipped: target has file/subdir with newer mtime"];
+                    next ENTRY;
+                }
+            }
+
             if ($args{-dry_run}) {
                 $log->warnf("[DRY RUN] Updating non-git file/dir '%s'", $file_or_dir);
                 next ENTRY;
             }
+
             # just some random unique string so we can detect whether any
             # file/dir is modified/added to target. to check files deleted in
             # target, we use /^deleting /x
             my $uuid = UUID::Random::generate();
             my $_v = $log->is_debug ? "-v" : "";
-            my $del = $args{rsync_del} ? "--del" : "";
-            $cmd = "rsync --log-format=$uuid -${_a}z $_v $del --force ".
+            $cmd = "rsync --log-format=$uuid -${_a}z $_v --del --force ".
                 shell_quote("$source/$file_or_dir")." .";
             my ($stdout, @result) = Capture::Tiny::capture_stdout(
                 sub { system($cmd) });
