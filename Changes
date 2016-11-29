@@ -4,7 +4,7 @@ Revision history for Git-Bunch
 
         - No functional changes.
 
-        - [build] Rebuild with fixed Pod::Weaver::Plugin::Rinci which eliminated
+        - [build] Rebuild with fixed Pod::Weaver::Plugin::Rinci to eliminate
           subcommand with name '' which got accidentally added to Subcommands
           POD section.
 
