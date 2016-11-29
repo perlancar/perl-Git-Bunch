@@ -25,6 +25,60 @@ our %SPEC;
 $SPEC{":package"} = {
     v => 1.1,
     summary => 'Manage gitbunch directory (directory which contain git repos)',
+    description => <<'_',
+
+A _gitbunch_ or _bunch_ directory is just a term I coined to refer to a
+directory which contains, well, a bunch of git repositories. It can also contain
+other stuffs like files and non-git repositories (but they must be dot-dirs).
+Example:
+
+ repos/            -> a gitbunch dir
+   proj1/          -> a git repo
+   proj2/          -> ditto
+   perl-Git-Bunch/ -> ditto
+   ...
+   .videos/        -> a non-git dir
+   README.txt      -> file
+
+If you organize your data as a bunch, you can easily check the status of your
+repositories and synchronize your data between two locations, e.g. your
+computer's harddisk and an external/USB harddisk.
+
+A little bit of history: after _git_ got popular, in 2008 I started using it for
+software projects, replacing Subversion and Bazaar. Soon, I moved everything*)
+to git repositories: notes & writings, Emacs .org agenda files, configuration,
+even temporary downloads/browser-saved HTML files. I put the repositories inside
+_$HOME/repos_ and add symlinks to various places for conveniences. Thus, the
+_$HOME/repos_ became the first bunch directory.
+
+*) everything except large media files (e.g. recorded videos) which I put in
+dot-dirs inside the bunch.
+
+See also <prog:rsybak>, which I wrote to backup everything else.
+
+_
+    links => [
+        {
+            url => 'prog:rsybak',
+        },
+        {
+            url => 'http://joeyh.name/code/mr/',
+            description => <<'_',
+
+You probably want to use this instead. _mr_ supports other control version
+software aside from git, doesn't restrict you to put all your repos in one
+directory, supports more operations, and has been developed since 2007. Had I
+known about _mr_, I probably wouldn't have started gitbunch. On the other hand,
+gitbunch is simpler (I think), doesn't require any config file, and can
+copy/sync files/directories not under source control. I mainly use gitbunch to
+quickly: 1) check whether there are any of my repositories which have
+uncommitted changes; 2) synchronize (pull/push) to other locations. I put all my
+data in one big gitbunch directory; I find it simpler. gitbunch works for me and
+I use it daily.
+
+_
+        },
+    ],
 };
 
 our %common_args = (
@@ -693,7 +747,11 @@ branch. If repository in destination doesn't exist, it will be rsync-ed first
 from source. When 'git pull' fails, will exit to let you fix the problem
 manually.
 
-For all other non-git repos, will simply synchronize by one-way rsync.
+For all other non-repo file/directory, will simply synchronize by one-way rsync.
+But, for added safety, will first check the newest mtime (mtime of the newest
+file or subdirectory) between source and target is checked first. If target
+contains the newer newest mtime, rsync-ing for that non-repo file/dir will be
+aborted. Note: you can use `--skip-mtime-check` option to skip this check.
 
 _
     args          => {
@@ -1070,59 +1128,9 @@ sub exec_bunch {
 
 =head1 SYNOPSIS
 
-To check the status of bunch (will do a 'git status' for each git repo inside
-the bunch and report which repos are 'unclean', e.g. needs commit, has untracked
-files, etc):
-
- % gitbunch check ~/repos
-
-To synchronize bunch to another (will do a 'git pull/push' for each git repo,
-and do an rsync for everything else):
-
- % gitbunch sync ~/repos /mnt/laptop/repos
+See the included L<gitbunch> script.
 
 
-=head1 DESCRIPTION
+=head1 append:SEE ALSO
 
-A B<gitbunch> or B<bunch> directory is just a term I coined to refer to a
-directory which contains, well, a bunch of git repositories. It can also contain
-other stuffs like files and non-git repositories (but they must be dot-dirs).
-Example:
-
- repos/            -> a gitbunch dir
-   proj1/          -> a git repo
-   proj2/          -> ditto
-   perl-Git-Bunch/ -> ditto
-   ...
-   .foo/           -> a non-git dir
-   README.txt      -> file
-
-A little bit of history: after B<git> got popular, in 2008 I started using it
-for software projects, replacing Subversion and Bazaar. Soon, I moved everything
-to git: notes & writings, Emacs .org agenda files, configuration, even temporary
-downloads/browser-saved HTML files. Currently, except large media files, all my
-personal data resides in git repositories. I put them all in ~/repos (and add
-symlinks to various places for convenience). This setup makes it easy to sync to
-laptops, backup to disk, etc. Git::Bunch is the library/script I wrote to do
-this.
-
-See also L<File::RsyBak>, which I wrote to backup everything else.
-
-
-=head1 FAQ
-
-
-=head1 SEE ALSO
-
-B<mr>, http://joeyh.name/code/mr/ . You probably want to use this instead. mr
-supports other control version software aside from git, doesn't restrict you to
-put all your repos in one directory, supports more operations, and has been
-developed since 2007. Had I known about mr, I probably wouldn't have started
-Git::Bunch. On the other hand, Git::Bunch is simpler (I think), doesn't require
-any config file, and can copy/sync files/directories not under source control. I
-mainly use Git::Bunch to quickly: 1) check whether there are any of my
-repositories which have uncommitted changes; 2) synchronize (pull/push) to other
-locations. I put all my data in one big gitbunch directory; I find it simpler.
-Git::Bunch works for me and I use it daily.
-
-=cut
+L<File::RsyBak>
