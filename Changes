@@ -1,5 +1,16 @@
 Revision history for Git-Bunch
 
+0.56    2016-11-29 (PERLANCAR)
+
+        - Add protection against wrong direction of rsync by checking newest
+          mtime. When rsync-ing non-repo file/dir, we now protect against wrong
+          direction of rsync by first finding "the newest mtime" for source and
+          target. "Newest mtime" is calculated by recursively traversing a dir
+          and finding the file/subdir with the newest mtime. When target's
+          "newest mtime" is greater than source's, the rsync for that non-repo
+          file/dir is skipped, unless --skip-mtime-check is specified.
+
+
 0.55    2016-06-18 (PERLANCAR)
 
         - [optimize] check_bunch(): To save one stat() call per dir, assume any
