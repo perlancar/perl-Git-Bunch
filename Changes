@@ -1,5 +1,11 @@
 Revision history for Git-Bunch
 
+0.59    2016-12-15 (PERLANCAR)
+
+	- [refactor] Extract check-mtime functionality to a separate script
+	  'rsync-new2old'.
+
+
 0.58    2016-11-29 (PERLANCAR)
 
         - No functional changes.
