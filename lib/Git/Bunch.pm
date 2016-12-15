@@ -712,30 +712,6 @@ sub _sync_repo {
     }
 }
 
-sub _find_newest_mtime {
-    my $path = shift;
-
-    my @st = lstat($path) or return (0, $path);
-    my $is_dir = (-d _);
-    my $mtime = $st[9];
-    if ($is_dir) {
-        opendir my($dh), $path
-            or die "Can't opendir $path: $!";
-        my @entries = grep { $_ ne '.' && $_ ne '..' } readdir($dh);
-        my @res = map { [_find_newest_mtime("$path/$_")] } @entries;
-        my $max_path = $path;
-        my $max_mtime = $mtime;
-        for my $r (@res) {
-            if ($r->[0] > $max_mtime) {
-                $max_mtime = $r->[0];
-                $max_path = $r->[1];
-            }
-        }
-        return ($max_mtime, $max_path);
-    }
-    ($mtime, $path);
-}
-
 $SPEC{sync_bunch} = {
     v             => 1.1,
     summary       =>
@@ -846,6 +822,7 @@ _
         all => [
             {prog => 'git'},
             {prog => 'rsync'},
+            {prog => 'rsync-new2old'},
             {prog => 'touch'},
         ],
     },
@@ -918,18 +895,13 @@ sub sync_bunch {
                                   "Sync-ing non-git file/directory $file_or_dir ...")
                  if $progress;
 
-            unless ($args{skip_mtime_check}) {
-                $log->tracef("Checking newest mtime for non-repo file/dir %s ...", $file_or_dir);
-                my ($newest_mtime_source, $newest_path_source) = _find_newest_mtime("$source/$file_or_dir");
-                $log->tracef("Newest mtime for %s (in source): %s", $newest_mtime_source ? scalar(localtime $newest_mtime_source) : "-");
-                my ($newest_mtime_target, $newest_path_target) = _find_newest_mtime($file_or_dir);
-                $log->tracef("Newest mtime for %s (in target): %s", $newest_mtime_target ? scalar(localtime $newest_mtime_target) : "-");
-                if ($newest_mtime_target > $newest_mtime_source) {
-                    $log->warnf("Skipped rsync %s because target has file/subdir (%s) with newer newest mtime (%s)",
-                                $file_or_dir, $newest_path_target, scalar(localtime $newest_mtime_target));
-                    $res{$file_or_dir} = [412, "rsync skipped: target has file/subdir with newer mtime"];
-                    next ENTRY;
-                }
+            my $prog;
+            my @extra_opts;
+            if ($args{skip_mtime_check}) {
+                $prog = "rsync";
+            } else {
+                $prog = "rsync-new2old";
+                push @extra_opts, "--create-target-if-not-exists";
             }
 
             if ($args{-dry_run}) {
@@ -943,7 +915,7 @@ sub sync_bunch {
             my $uuid = UUID::Random::generate();
             my $_v = $log->is_debug ? "-v" : "";
             my $del = $args{rsync_del} ? "--del" : "";
-            $cmd = "rsync --log-format=$uuid -${_a}z $_v $del --force ".
+            $cmd = "$prog ".join(" ", @extra_opts)." --log-format=$uuid -${_a}z $_v $del --force ".
                 shell_quote("$source/$file_or_dir")." .";
             my ($stdout, @result) = Capture::Tiny::capture_stdout(
                 sub { system($cmd) });
