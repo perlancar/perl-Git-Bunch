@@ -4,6 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use Test::More 0.98;
+use Test::Needs;
 
 use File::chdir;
 use File::Slurper qw(read_text write_text);
@@ -14,7 +15,7 @@ use IPC::System::Options 'system', 'readpipe', -log=>1, -lang=>'C';
 use Probe::Perl;
 use String::ShellQuote;
 
-for (qw(git rsync rm)) {
+for (qw(git rsync rm rsync-new2old)) {
     plan skip_all => "$_ not available in PATH" unless which($_);
 }
 my $git_version = `git --version`;
