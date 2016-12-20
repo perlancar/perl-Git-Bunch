@@ -4,7 +4,6 @@ use 5.010;
 use strict;
 use warnings;
 use Test::More 0.98;
-use Test::Needs;
 
 use File::chdir;
 use File::Slurper qw(read_text write_text);

@@ -1,5 +1,11 @@
 Revision history for Git-Bunch
 
+0.60    2016-12-20 (PERLANCAR)
+
+	- Skip testing when rsync-new2old is not available in PATH
+	  [RT#119318].
+
+
 0.59    2016-12-15 (PERLANCAR)
 
 	- [refactor] Extract check-mtime functionality to a separate script
