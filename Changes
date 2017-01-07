@@ -1,5 +1,3 @@
-Revision history for Git-Bunch
-
 0.60    2016-12-20 (PERLANCAR)
 
 	- Skip testing when rsync-new2old is not available in PATH
