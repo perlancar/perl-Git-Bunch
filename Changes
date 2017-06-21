@@ -1,3 +1,10 @@
+0.61    2017-06-21 (PERLANCAR)
+
+	- No functional changes.
+
+	- Switch from Log::Any to Log::ger.
+
+
 0.60    2016-12-20 (PERLANCAR)
 
 	- Skip testing when rsync-new2old is not available in PATH
