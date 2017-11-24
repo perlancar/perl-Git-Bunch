@@ -775,6 +775,7 @@ non-repo file/dir is aborted. If you want to force the rsync anyway, use this
 option.
 
 _
+            cmdline_aliases => {M=>{}},
         },
         create_bare_target => {
             summary      => 'Whether to create bare git repo '.
