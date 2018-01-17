@@ -191,6 +191,29 @@ our %target_args = (
     },
 );
 
+our %remote_ssh_args = (
+    ssh_user => {
+        summary      => 'Remote SSH user',
+        schema       => ['str*', match=>qr/\A[\w-]+\z/],
+        default      => 22,
+    },
+    ssh_host => {
+        summary      => 'Remote SSH host',
+        schema       => ['net::hostname*'],
+        req          => 1,
+    },
+    ssh_port => {
+        summary      => 'Remote SSH port',
+        schema       => ['net::port*'],
+        default      => 22,
+    },
+    ssh_path => {
+        summary      => 'Remote host path to the bunch directory',
+        schema       => ['pathname*'],
+        default      => 22,
+    },
+);
+
 sub _check_common_args {
     my ($args, $requires_target) = @_;
     my $res;
