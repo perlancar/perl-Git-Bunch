@@ -478,7 +478,16 @@ sub check_bunch {
         }
 
         $has_unclean++;
-        if ($exit == 0 &&
+        if ($exit == 0 && $output =~ /^\s*Unmerged paths:/m) {
+            log_warn("$repo needs merging");
+            $res{$repo} = [500, "Needs merging"];
+        } elsif ($exit == 0 &&
+                     $output =~ /(
+                                     Untracked \s files
+                                 )/x) {
+            log_warn("$repo has untracked files");
+            $res{$repo} = [500, "Has untracked files"];
+        } elsif ($exit == 0 &&
                 $output =~ /(
                                 Changes \s to \s be \s committed |
                                 Changes \s not \s staged \s for \s commit |
@@ -486,15 +495,6 @@ sub check_bunch {
                             )/mx) {
             log_warn("$repo needs commit");
             $res{$repo} = [500, "Needs commit"];
-        } elsif ($exit == 0 &&
-                     $output =~ /(
-                                     Untracked \s files
-                                 )/x) {
-            log_warn("$repo has untracked files");
-            $res{$repo} = [500, "Has untracked files"];
-        } elsif ($exit == 0 && $output =~ /Unmerged paths:/) {
-            log_warn("$repo needs merging");
-            $res{$repo} = [500, "Needs merging"];
         } elsif ($exit == 128 && $output =~ /Not a git repository/) {
             log_warn("$repo is not a git repo (2)");
             $res{$repo} = [500, "Not a git repo (2)"];
