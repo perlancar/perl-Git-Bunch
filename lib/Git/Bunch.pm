@@ -163,7 +163,7 @@ interested in recent repos (which is most of the time unless you are doing a
 full check/sync).
 
 _
-        schema => ['date*', 'x.perl.coerce_rules' => ['str_alami_en']],
+        schema => ['date*', 'x.perl.coerce_rules' => ['!float_epoch', 'float_epoch_always', 'str_alami_en']],
         tags => ['filter'],
     },
 );
