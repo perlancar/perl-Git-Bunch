@@ -508,7 +508,10 @@ sub check_bunch {
     [200,
      $has_unclean ? "Some repos unclean" : "All repos clean",
      \%res,
-     {'cmdline.result'=>'', 'func.res'=>\%res}];
+     {
+         'cmdline.result' => '', 'func.res'=>\%res,
+         'cmdline.exit_code' => $has_unclean ? 1:0,
+     }];
 }
 
 $SPEC{list_bunch_contents} = {
