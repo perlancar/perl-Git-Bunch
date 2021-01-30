@@ -1,6 +1,8 @@
 package Git::Bunch;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010001;
@@ -8,15 +10,15 @@ use strict;
 use warnings;
 use Log::ger;
 
-use IPC::System::Options 'system', 'readpipe', -log=>1, -lang=>'C';
 use Cwd ();
 use File::chdir;
 use File::Path qw(make_path);
+use IPC::System::Options 'system', 'readpipe', -log=>1, -lang=>'C';
 use List::Util qw(max);
 use POSIX qw(strftime);
 use String::ShellQuote;
 
-require Exporter;
+use Exporter qw(import);
 our @ISA       = qw(Exporter);
 our @EXPORT_OK = qw(check_bunch sync_bunch exec_bunch);
 
@@ -164,6 +166,10 @@ full check/sync).
 
 _
         schema => ['date*', 'x.perl.coerce_rules' => ['!From_float::epoch', 'From_float::epoch_always', 'From_str::natural']],
+        cmdline_aliases => {
+            recent => {is_flag=>1, summary=>'Shortcut for --min-repo-access-time="2 weeks ago"', code=>sub { $_[0]{min_repo_access_time} = time() - 14*86400} },
+            r      => {is_flag=>1, summary=>'Shortcut for --min-repo-access-time="2 weeks ago"', code=>sub { $_[0]{min_repo_access_time} = time() - 14*86400} },
+        },
         tags => ['filter'],
     },
 );
