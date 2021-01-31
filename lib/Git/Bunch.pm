@@ -1258,4 +1258,8 @@ See the included L<gitbunch> script.
 
 =head1 append:SEE ALSO
 
-L<File::RsyBak>
+Other tools on CPAN to make it easier to manage multiple git repositories:
+L<got> from L<App::GitGot>, L<group-git> from L<Group::Git>.
+
+Git::Bunch can be used to backup bunch. Other tools to do backup include
+L<File::RsyBak>.

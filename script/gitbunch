@@ -39,3 +39,16 @@ To synchronize bunch to another (will do a 'git pull/push' for each git repo,
 and do an rsync for everything else):
 
  % gitbunch sync ~/repos /mnt/laptop/repos
+
+
+=head1 DESCRIPTION
+
+A (git)bunch is a directory that contains a bunch of git repositories (as well
+as dot non-git directories and regular files). This B<gitbunch> utility can help
+you perform actions on some/all of the repositories in the bunch.
+
+
+=head1 append:SEE ALSO
+
+Other tools on CPAN to make it easier to manage multiple git repositories:
+L<got> from L<App::GitGot>, L<group-git> from L<Group::Git>.
