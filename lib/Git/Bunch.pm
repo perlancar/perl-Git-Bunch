@@ -1211,11 +1211,10 @@ sub commit_bunch {
     my $check_res;
     {
         log_info("Checking status of repos");
-        $check_res = check_bunch(%args, -dry_run=>0);
+        $check_res = check_bunch(%args, _loglevel=>'trace', -dry_run=>0);
         die "Can't check bunch: $check_res->[0] - $check_res->[1]"
             unless $check_res->[0] == 200;
     }
-    use DD; dd $check_res;
 
     #my $exec_res;
     {
@@ -1227,8 +1226,8 @@ sub commit_bunch {
         }
 
         my $cmd = $args{-dry_run} ?
-            "hr; pwd; git add .;git commit -am ".String::ShellQuote::shell_quote($message) :
-            "hr; pwd; git status";
+            "hr; pwd; git status" :
+            "hr; pwd; git add .;git commit -am ".String::ShellQuote::shell_quote($message);
         exec_bunch(%args, -dry_run=>0, include_repos=>\@repos, command=>$cmd);
     }
 
