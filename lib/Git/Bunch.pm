@@ -221,6 +221,13 @@ our %remote_ssh_args = (
     },
 );
 
+our %command_opts_args = (
+    command_opts   => {
+        summary  => "Options to pass to IPC::System::Options's system()",
+        schema   => ['hash*'],
+    },
+);
+
 sub _check_common_args {
     my ($args, $requires_target) = @_;
     my $res;
@@ -1117,6 +1124,7 @@ _
             pos      => 1,
             greedy   => 1,
         },
+        %command_opts_args,
     },
     features => {
         dry_run => 1,
@@ -1133,6 +1141,7 @@ sub exec_bunch {
     my $source  = $args{source};
     my $command = $args{command};
     defined($command) or return [400, "Please specify command"];
+    my $command_opts = $args{command_opts} // {};
 
     local $CWD = $source;
     my %res;
@@ -1146,11 +1155,11 @@ sub exec_bunch {
         my $repo = $e->{name};
         $CWD = $i++ ? "../$repo" : $repo;
         if ($args{-dry_run}) {
-            log_info("[DRY-RUN] Executing command on $repo ...");
+            log_info("[DRY-RUN] Executing command (%s, %s) on $repo ...", $command_opts, $command);
             next REPO;
         }
-        log_info("Executing command on $repo ...");
-        system($command);
+        log_info("Executing command (%s, %s) on $repo ...", $command_opts, $command);
+        system($command_opts, $command);
         $exit = $? >> 8;
         if ($exit) {
             log_warn("Command failed: $exit");
@@ -1190,6 +1199,7 @@ _
             default => "Committed using 'gitbunch commit'",
             cmdline_aliases => {m=>{}},
         },
+        %command_opts_args,
     },
     features => {
         dry_run => {default=>1},
@@ -1207,6 +1217,7 @@ sub commit_bunch {
 
     my %args = @_;
     my $message = delete $args{message};
+    my $command_opts = delete($args{command_opts}) // {};
 
     my $check_res;
     {
@@ -1226,9 +1237,9 @@ sub commit_bunch {
         }
 
         my $cmd = $args{-dry_run} ?
-            "hr; pwd; git status" :
-            "hr; pwd; git add .;git commit -am ".String::ShellQuote::shell_quote($message);
-        exec_bunch(%args, -dry_run=>0, include_repos=>\@repos, command=>$cmd);
+            "pwd; git status; hr" :
+            "pwd; git add .;git commit -am ".String::ShellQuote::shell_quote($message)."; hr";
+        exec_bunch(%args, -dry_run=>0, include_repos=>\@repos, command=>$cmd, command_opts=>$command_opts);
     }
 
     [200];
