@@ -1,4 +1,4 @@
-0.627   2021-01-31  Released-By: PERLANCAR; Urgency: medium
+0.627.1 2021-01-31  Released-By: PERLANCAR; Urgency: medium
 
         - Add new subcommand: commit.
 
@@ -6,6 +6,15 @@
 
 	- [ux] Add --recent & -r as shortcut for --min-repo-access-time='2 weeks
 	  ago'.
+
+        - UPDATE: Rename version to 0.627.1 due to duplicate.
+
+
+0.627   2020-10-30  Released-By: PERLANCAR; Urgency: medium
+
+        [subcommand check]
+
+        - [ux] Exit non-zero when there is unclean repo.
 
 
 0.626   2020-01-31  Released-By: PERLANCAR; Urgency: low
