@@ -1,6 +1,8 @@
 #!perl
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010001;
@@ -12,10 +14,11 @@ use Perinci::CmdLine::Any;
 Perinci::CmdLine::Any->new(
     url => '/Git/Bunch/',
     subcommands => {
+        check  => { url => '/Git/Bunch/check_bunch' },
+        commit => { url => '/Git/Bunch/commit_bunch' },
+        exec   => { url => '/Git/Bunch/exec_bunch' },
         ls     => { url => '/Git/Bunch/list_bunch_contents' },
-        check  => { url => '/Git/Bunch/check_bunch'  },
-        sync   => { url => '/Git/Bunch/sync_bunch'   },
-        exec   => { url => '/Git/Bunch/exec_bunch'   },
+        sync   => { url => '/Git/Bunch/sync_bunch' },
     },
     log => 1,
 )->run;

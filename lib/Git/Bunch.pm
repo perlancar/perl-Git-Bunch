@@ -8,6 +8,7 @@ package Git::Bunch;
 use 5.010001;
 use strict;
 use warnings;
+use Log::ger::Format 'MultilevelLog';
 use Log::ger;
 
 use Cwd ();
@@ -448,7 +449,8 @@ sub check_bunch {
     return $res unless $res->[0] == 200;
     my $source = $args{source};
 
-    log_info("Checking bunch $source ...");
+    #log_info("Checking bunch $source ...");
+    log($args{_loglevel} // 'info', "Checking bunch $source ...");
 
     my $has_unclean;
     my %res;
@@ -471,27 +473,31 @@ sub check_bunch {
             if $progress;
 
         if ($args{-dry_run}) {
-            log_info("[DRY-RUN] checking status of repo %s", $repo);
+            #log_info("[DRY-RUN] checking status of repo %s", $repo);
+            log($args{_loglevel} // 'info', "[DRY-RUN] checking status of repo %s", $repo);
             next REPO;
         }
 
         my $output = readpipe("git status 2>&1");
         my $exit = $? >> 8;
         if ($exit == 0 && $output =~ /nothing to commit/) {
-            log_info("$repo is clean");
+            #log_info("$repo is clean");
+            log($args{_loglevel} // 'info', "$repo is clean");
             $res{$repo} = [200, "Clean"];
             next;
         }
 
         $has_unclean++;
         if ($exit == 0 && $output =~ /^\s*Unmerged paths:/m) {
-            log_warn("$repo needs merging");
+            #log_warn("$repo needs merging");
+            log($args{_loglevel} // 'warn', "$repo needs merging");
             $res{$repo} = [500, "Needs merging"];
         } elsif ($exit == 0 &&
                      $output =~ /(
                                      Untracked \s files
                                  )/x) {
-            log_warn("$repo has untracked files");
+            #log_warn("$repo has untracked files");
+            log($args{_loglevel} // 'warn', "$repo has untracked files");
             $res{$repo} = [500, "Has untracked files"];
         } elsif ($exit == 0 &&
                 $output =~ /(
@@ -499,14 +505,20 @@ sub check_bunch {
                                 Changes \s not \s staged \s for \s commit |
                                 Changed \s but
                             )/mx) {
-            log_warn("$repo needs commit");
+            #log_warn("$repo needs commit");
+            log($args{_loglevel} // 'warn', "$repo needs commit");
             $res{$repo} = [500, "Needs commit"];
         } elsif ($exit == 128 && $output =~ /Not a git repository/) {
-            log_warn("$repo is not a git repo (2)");
+            #log_warn("$repo is not a git repo (2)");
+            log($args{_loglevel} // 'warn', "$repo is not a git repo (2)");
             $res{$repo} = [500, "Not a git repo (2)"];
         } else {
-            log_error("Can't figure out result of 'git status' ".
-                            "for repo $repo: exit=$exit, output=$output");
+            #log_warn(
+            #    "Can't figure out result of 'git status' ".
+            #        "for repo $repo: exit=$exit, output=$output");
+            log($args{_loglevel} // 'error',
+                "Can't figure out result of 'git status' ".
+                    "for repo $repo: exit=$exit, output=$output");
             $res{$repo} = [500, "Unknown (exit=$exit, output=$output)"];
         }
     }
@@ -1153,6 +1165,74 @@ sub exec_bunch {
      "OK",
      \%res,
      {"cmdline.result" => ''}];
+}
+
+$SPEC{commit_bunch} = {
+    v => 1.1,
+    summary => 'Commit all uncommitted repos in the bunch',
+    description   => <<'_',
+
+For each git repository in the bunch, will first check whether the repo is
+"uncommitted" state, which means either has the status of "Needs commit" or "Has
+untracked files". The default mode is dry-run/simulation. If the `--no-dry-run`
+flag is not specified, will just show the status of these repos for you. If the
+`--no-dry-run` (can be as short as `--no-d` or `-N`) flag is specified, will
+'git add'+'git commit' all these repos with the same commit message for each,
+specified in `--message` (or just "Committed using 'gitbunch commit'" as the
+default message).
+
+_
+    args          => {
+        %common_args,
+        message => {
+            summary => 'Commit message',
+            schema => 'str*',
+            default => "Committed using 'gitbunch commit'",
+            cmdline_aliases => {m=>{}},
+        },
+    },
+    features => {
+        dry_run => {default=>1},
+    },
+    deps => {
+        all => [
+            {prog => 'git'},
+            {prog => 'hr'},
+            {prog => 'pwd'},
+        ],
+    },
+};
+sub commit_bunch {
+    require String::ShellQuote;
+
+    my %args = @_;
+    my $message = delete $args{message};
+
+    my $check_res;
+    {
+        log_info("Checking status of repos");
+        $check_res = check_bunch(%args, -dry_run=>0);
+        die "Can't check bunch: $check_res->[0] - $check_res->[1]"
+            unless $check_res->[0] == 200;
+    }
+    use DD; dd $check_res;
+
+    #my $exec_res;
+    {
+        my @repos;
+        for my $repo_name (keys %{ $check_res->[2] }) {
+            my $repo_res = $check_res->[2]{$repo_name};
+            next unless $repo_res->[1] =~ /^(Needs commit|Has untracked files)$/;
+            push @repos, $repo_name;
+        }
+
+        my $cmd = $args{-dry_run} ?
+            "hr; pwd; git add .;git commit -am ".String::ShellQuote::shell_quote($message) :
+            "hr; pwd; git status";
+        exec_bunch(%args, -dry_run=>0, include_repos=>\@repos, command=>$cmd);
+    }
+
+    [200];
 }
 
 1;
