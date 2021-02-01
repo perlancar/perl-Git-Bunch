@@ -14,7 +14,7 @@
 
         - Add new subcommand: commit.
 
-	- [cli exec-bunch] Add option: command_opts.
+	- [subcommand exec] Add option: command_opts.
 
 	- [ux] Add --recent & -r as shortcut for --min-repo-access-time='2 weeks
 	  ago'.
