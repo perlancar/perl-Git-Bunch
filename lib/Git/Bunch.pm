@@ -1,10 +1,5 @@
 package Git::Bunch;
 
-# AUTHORITY
-# DATE
-# DIST
-# VERSION
-
 use 5.010001;
 use strict;
 use warnings;
@@ -12,6 +7,7 @@ use Log::ger::Format 'MultilevelLog';
 use Log::ger;
 
 use Cwd ();
+use Exporter qw(import);
 use File::chdir;
 use File::Path qw(make_path);
 use IPC::System::Options 'system', 'readpipe', -log=>1, -lang=>'C';
@@ -19,8 +15,11 @@ use List::Util qw(max);
 use POSIX qw(strftime);
 use String::ShellQuote;
 
-use Exporter qw(import);
-our @ISA       = qw(Exporter);
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
 our @EXPORT_OK = qw(check_bunch sync_bunch exec_bunch);
 
 our %SPEC;
