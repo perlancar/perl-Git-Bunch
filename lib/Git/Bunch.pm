@@ -244,7 +244,7 @@ sub _check_common_args {
         return [400, "Invalid include_repos_pat: must be a string"]
             if ref($irp);
         return [400, "Invalid include_repos_pat: $@"]
-            if !(eval q{qr/$irp/});
+            if !(eval q{qr/$irp/}); ## no critic: TestingAndDebugging::ProhibitNoStrict
     }
     my $er = $args->{exclude_repos};
     return [400, "exclude_repos must be an array"]
@@ -254,7 +254,7 @@ sub _check_common_args {
         return [400, "Invalid exclude_repos_pat: must be a string"]
             if ref($erp);
         return [400, "Invalid exclude_repos_pat: must be a string"]
-            if !(eval q{qr/$erp/});
+            if !(eval q{qr/$erp/}); ## no critic: TestingAndDebugging::ProhibitNoStrict
     }
 
     if ($requires_target) {
