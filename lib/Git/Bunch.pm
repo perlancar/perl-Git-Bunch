@@ -278,8 +278,6 @@ sub _is_repo {
 
 # return true if entry should be skipped
 sub _skip_process_entry {
-    use experimental 'smartmatch';
-
     my ($e, $args, $dir, $skip_non_repo) = @_;
 
     # skip special files
@@ -305,7 +303,7 @@ sub _skip_process_entry {
     }
     if ($is_repo) {
         my $ir = $args->{include_repos};
-        if ($ir && !($e->{name} ~~ @$ir)) {
+        if ($ir && !(grep { $_ eq $e->{name} } @$ir)) {
             log_debug("Skipped $e->{name} (not in include_repos)");
             return 1;
         }
@@ -315,7 +313,7 @@ sub _skip_process_entry {
             return 1;
         }
         my $er = $args->{exclude_repos};
-        if ($er && $e->{name} ~~ @$er) {
+        if ($er && grep { $_ eq $e->{name} } @$er) {
             log_debug("Skipped $e->{name} (in exclude_repos)");
             return 1;
         }
@@ -443,8 +441,6 @@ _
     },
 };
 sub check_bunch {
-    use experimental 'smartmatch';
-
     my %args = @_;
     my $res;
 
@@ -466,7 +462,7 @@ sub check_bunch {
 
     my $i = 0;
     $progress->pos(0) if $progress;
-    $progress->target(~~@entries) if $progress;
+    $progress->target(scalar @entries) if $progress;
   REPO:
     for my $e (@entries) {
         my $repo = $e->{name};
@@ -561,8 +557,6 @@ _
     },
 };
 sub list_bunch_contents {
-    use experimental 'smartmatch';
-
     my %args = @_;
 
     # XXX schema
@@ -608,8 +602,6 @@ sub list_bunch_contents {
 }
 
 sub _sync_repo {
-    use experimental 'smartmatch';
-
     my ($src, $dest, $repo, $opts) = @_;
     my $exit;
 
@@ -699,7 +691,7 @@ sub _sync_repo {
             $output = readpipe(
                 join("",
                      "cd '$dest/$repo'; ",
-                     ($branch ~~ @dest_branches ? "":"git branch '$branch'; "),
+                     ((grep { $_ eq $branch } @dest_branches) ? "":"git branch '$branch'; "),
                      "git checkout '$branch' 2>/dev/null; ",
                      "git pull '$src/$repo' '$branch' 2>&1"
                  ));
@@ -742,7 +734,7 @@ sub _sync_repo {
 
     if ($opts->{delete_branch}) {
         for my $branch (@dest_branches) {
-            next if $branch ~~ @src_branches;
+            next if grep { $_ eq $branch } @src_branches;
             next if $branch eq 'master'; # can't delete master branch
             $changed_branch++;
             log_info("Deleting branch $branch of repo $repo because ".
@@ -890,7 +882,6 @@ _
     },
 };
 sub sync_bunch {
-    use experimental 'smartmatch';
     require Capture::Tiny;
     require UUID::Random;
     require App::reposdb;
@@ -941,7 +932,7 @@ sub sync_bunch {
     my %res;
     my $i = 0;
     $progress->pos(0) if $progress;
-    $progress->target(~~@entries) if $progress;
+    $progress->target(scalar @entries) if $progress;
 
     my @res;
 
