@@ -1142,20 +1142,27 @@ sub exec_bunch {
     my @entries = _list(\%args);
     @entries = _sort_entries_by_recent(@entries) if $args{min_repo_access_time};
     #log_trace("entries: %s", \@entries);
-    my $i = 0;
-  REPO:
+
+    my @filtered_entries;
     for my $e (@entries) {
-        $i++;
-        next REPO if _skip_process_repo($e, \%args, ".");
+        next if _skip_process_repo($e, \%args, ".");
+        push @filtered_entries, $e;
+    }
+
+  REPO:
+    for my $e (@filtered_entries) {
         my $repo = $e->{name};
         $CWD = $i++ ? "../$repo" : $repo;
         if ($args{-dry_run}) {
-            log_info("[DRY-RUN] Executing command (%s, %s) on $repo ...", $command_opts, $command);
+            log_info("[DRY-RUN] [%d/%d] Executing command (%s, %s) on $repo ...",
+                     $i,
+                     scalar(@filtered_entries),
+                     $command_opts, $command);
             next REPO;
         }
         log_info("[%d/%d] Executing command (%s, %s) on $repo ...",
                  $i,
-                 scalar(@entries),
+                 scalar(@filtered_entries),
                  $command_opts, $command);
         system($command_opts, $command);
         $exit = $? >> 8;
