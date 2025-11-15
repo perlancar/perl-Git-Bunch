@@ -19,8 +19,11 @@ Perinci::CmdLine::Any->new(
         exec   => { url => '/Git/Bunch/exec_bunch' },
         ls     => { url => '/Git/Bunch/list_bunch_contents' },
         sync   => { url => '/Git/Bunch/sync_bunch' },
+
+        "ls-bunches" => { url => '/Git/Bunch/list_bunches' },
     },
     log => 1,
+    pass_cmdline_object => 1,
 )->run;
 
 1;
@@ -40,6 +43,19 @@ and do an rsync for everything else):
 
  % gitbunch sync ~/repos /mnt/laptop/repos
 
+=head2 Listing repositories
+
+ % gitbunch ls        ; # just list each repository names
+ % gitbunch ls -l     ; # list repository name, groups
+
+=head2 Group-related commands
+
+To list all defined groups:
+
+ % gitbunch ls-groups    ; # just list the group names
+ % gitbunch ls-groups -l ; # list each group's name, summary, and number of repos belonging to that group
+
+To list
 
 =head1 DESCRIPTION
 

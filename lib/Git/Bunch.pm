@@ -1251,6 +1251,64 @@ sub commit_bunch {
     [200];
 }
 
+$SPEC{list_bunches} = {
+    v             => 1.1,
+    summary       =>
+        'List bunches defined in configuration',
+    description   => <<'MARKDOWN',
+
+A gitbunch directory is defined in the configuration file as a section, e.g.:
+
+    [bunch NAME]
+    path = SOMEPATH
+
+    [bunch NAME2]
+    path = !path ~/SOMEPATH
+
+MARKDOWN
+    args          => {
+        detail => {
+            schema => 'bool*',
+            cmdline_aliases => {l=>{}},
+        },
+    },
+    deps => {
+    },
+    features => {
+    },
+};
+sub list_bunches {
+    my %args = @_;
+    my $cmdline = $args{-cmdline};
+    my $cmdline_r = $args{-cmdline_r};
+
+    my $config = $cmdline_r->{config};
+    my @section_names0 = sort {
+        my $order_a = $cmdline_r->{_config_section_read_order}{$a} // [9999, 9999];
+        my $order_b = $cmdline_r->{_config_section_read_order}{$b} // [9999, 9999];
+        $order_a->[0] <=> $order_b->[0] ||
+            $order_a->[1] <=> $order_b->[1] || 0;
+    } grep { /^bunch\s/ } keys %$config;
+
+    my @bunches;
+    for my $section_name0 (@section_names0) {
+        my $section_config = $config->{$section_name0};
+        (my $section_name = $section_name0) =~ s/(\s+\S+=\S*)+$//;
+        (my $bunch_name = $section_name) =~ s/^bunch\s+//;
+        $bunch_name =~ s/^"(.+)"$/$1/;
+        push @bunches, {
+            name => $bunch_name,
+            path => $section_config->{path},
+        };
+    } # for section_name0
+
+    unless ($args{detail}) {
+        @bunches = map { $_->{name} } @bunches;
+    }
+
+    [200, "OK", \@bunches];
+}
+
 1;
 # ABSTRACT:
 
