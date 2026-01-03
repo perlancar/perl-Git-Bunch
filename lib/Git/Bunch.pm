@@ -429,6 +429,7 @@ Will die if can't chdir into bunch or git repository.
 MARKDOWN
     args          => {
         %common_args,
+        %sort_args,
     },
     deps => {
         all => [
@@ -924,7 +925,7 @@ sub sync_bunch {
 
     local $CWD = $source;
     my @entries = _list(\%args);
-    @entries = _sort_entries_by_recent(@entries) if $args{min_repo_access_time};
+    @entries = _sort_entries_by_recent(@entries);# if $args{min_repo_access_time};
     #log_trace("entries: %s", \@entries);
 
     $CWD = $target unless $action eq 'list-source-repos';
@@ -1198,6 +1199,7 @@ default message).
 MARKDOWN
     args          => {
         %common_args,
+        %sort_args,
         message => {
             summary => 'Commit message',
             schema => 'str*',
